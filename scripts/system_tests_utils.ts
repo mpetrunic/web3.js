@@ -162,11 +162,16 @@ export const getSystemTestAccounts = async (): Promise<string[]> => {
 		const web3Eth = new Web3Eth(clientUrl);
 		const web3Personal = new Personal(clientUrl);
 
-		await web3Eth.sendTransaction({
-			from: await web3Eth.getCoinbase(),
-			to: getSystemTestAccountsWithKeys()[0].address,
-			value: '100000000000000000000',
-		});
+		const Keys = getSystemTestAccountsWithKeys();
+		await Promise.all(
+			Keys.map(async key => {
+				await web3Eth.sendTransaction({
+					from: await web3Eth.getCoinbase(),
+					to: key.address,
+					value: '100000000000000000000',
+				});
+			}),
+		);
 
 		const existsAccounts = (await web3Personal.getAccounts()).map((a: string) =>
 			a.toUpperCase(),
@@ -177,24 +182,20 @@ export const getSystemTestAccounts = async (): Promise<string[]> => {
 				existsAccounts.includes(getSystemTestAccountsWithKeys()[0].address.toUpperCase())
 			)
 		) {
-			await web3Personal.importRawKey(
-				getSystemTestAccountsWithKeys()[0].privateKey.substring(2),
-				'123456',
-			);
-			await web3Personal.unlockAccount(
-				getSystemTestAccountsWithKeys()[0].address,
-				'123456',
-				500,
+			await Promise.all(
+				Keys.map(async key => {
+					await web3Personal.importRawKey(key.privateKey.substring(2), '123456');
+					await web3Personal.unlockAccount(key.address, '123456', 500);
+				}),
 			);
 		} else {
-			await web3Personal.unlockAccount(
-				getSystemTestAccountsWithKeys()[0].address,
-				'123456',
-				500,
+			await Promise.all(
+				Keys.map(async key => {
+					await web3Personal.unlockAccount(key.address, '123456', 500);
+				}),
 			);
 		}
 	}
-
 	const res = await fetch(clientUrl, {
 		headers: {
 			'Content-Type': 'application/json',

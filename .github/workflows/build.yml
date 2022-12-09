@@ -145,7 +145,8 @@ jobs:
         uses: PilotConway/github-action@c5724eda82337bcff977ce14509f47052c12e04c
         with:
             install: false
-            command: yarn test:e2e:ganache:ws:${{ matrix.browser }}
+            runTests: false
+            command: yarn dlx -p cypress test:e2e:ganache:ws:${{ matrix.browser }}
             cache-key: node-v${{ matrix.node }}-on-${{ matrix.browser }}-hash-${{ hashFiles('yarn.lock') }}
 
   build-docs:

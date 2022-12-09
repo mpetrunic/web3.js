@@ -42,18 +42,18 @@ loginNPMUser() {
         -r http://localhost:4873
 }
 
-lernaUpdatePackageVersions() {
-    yarn workspaces foreach version 5.0.0 -i
+yarnUpdatePackageVersions() {
+    yarn workspaces foreach -vp version 5.0.0 -i
 }
 
-lernaBuildAndCommit() {
+yarnBuildAndCommit() {
     yarn build
 
     git add .
     git commit -m "Comitting for black box publish"
 }
 
-lernaPublish() {
+yarnPublish() {
     echo npmRegistryServer: "http://localhost:4873" >> ./.yarnrc.yml
     yarn workspaces foreachnpm publish \
         --tolerate-republish \
@@ -67,9 +67,9 @@ publish() {
 
     createVerdaccioNPMUser
     loginNPMUser
-    lernaUpdatePackageVersions
-    lernaBuildAndCommit
-    lernaPublish
+    yarnUpdatePackageVersions
+    yarnBuildAndCommit
+    yarnPublish
 }
 
 startBackgroundAndPublish() {
@@ -84,8 +84,8 @@ publish) publish ;;
 startBackgroundAndPublish) startBackgroundAndPublish ;;
 createVerdaccioNPMUser) createVerdaccioNPMUser ;;
 loginNPMUser) loginNPMUser ;;
-lernaUpdatePackageVersions) lernaUpdatePackageVersions ;;
-lernaBuildAndCommit) lernaBuildAndCommit ;;
-lernaPublish) lernaPublish ;;
+yarnUpdatePackageVersions) yarnUpdatePackageVersions ;;
+yarnBuildAndCommit) yarnBuildAndCommit ;;
+yarnPublish) yarnPublish ;;
 *) helpFunction ;; # Print helpFunction in case parameter is non-existent
 esac

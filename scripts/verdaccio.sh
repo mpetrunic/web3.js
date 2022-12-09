@@ -35,7 +35,7 @@ createVerdaccioNPMUser() {
 }
 
 loginNPMUser() {
-    npm-auth-to-token \
+    yarn dlx npm-auth-to-token \
         -u test \
         -p test \
         -e test@test.com \
@@ -43,12 +43,7 @@ loginNPMUser() {
 }
 
 lernaUpdatePackageVersions() {
-    lerna version 5.0.0 \
-        --ignore-scripts \
-        --no-push \
-        --no-private \
-        --no-git-tag-version \
-        --yes
+    yarn workspaces foreach version 5.0.0 -i
 }
 
 lernaBuildAndCommit() {
@@ -59,19 +54,16 @@ lernaBuildAndCommit() {
 }
 
 lernaPublish() {
-    lerna publish from-package \
-        --dist-tag blackbox \
-        --no-git-tag-version \
-        --no-push \
-        --registry http://localhost:4873 \
-        --ignore-scripts \
-        --yes
+    echo npmRegistryServer: "http://localhost:4873" >> ./.yarnrc.yml
+    yarn workspaces foreachnpm publish \
+        --tolerate-republish \
+        --tag blackbox \
+        --access public \
 }
 
 publish() {
     echo "Publishing to verdaccio ..."
-
-    npx wait-port -t 60000 4873
+    yarn dlx wait-port -t 60000 4873
 
     createVerdaccioNPMUser
     loginNPMUser
@@ -81,6 +73,7 @@ publish() {
 }
 
 startBackgroundAndPublish() {
+    corepack enable
     startBackground && publish
 }
 

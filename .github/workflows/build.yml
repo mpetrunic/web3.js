@@ -142,11 +142,10 @@ jobs:
       - run: corepack enable
       - name: Cypress run
         # temporarily until fix is merged upstream
-        uses: PilotConway/github-action@c5724eda82337bcff977ce14509f47052c12e04c
+        uses: cypress-io/github-action@v5
         with:
             install: false
-            runTests: false
-            command: yarn dlx -p cypress test:e2e:ganache:ws:${{ matrix.browser }}
+            command: yarn run test:e2e:ganache:ws:${{ matrix.browser }}
             cache-key: node-v${{ matrix.node }}-on-${{ matrix.browser }}-hash-${{ hashFiles('yarn.lock') }}
 
   build-docs:

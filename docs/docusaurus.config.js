@@ -41,12 +41,12 @@ const packages = [
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-	title: 'Web3.js',
+	title: 'web3.js',
 	tagline: 'The ultimate JavaScript library for Ethereum',
 	url: 'https://docs.web3js.org',
 	baseUrl: '/',
-	onBrokenLinks: 'warn',
-	onBrokenMarkdownLinks: 'warn',
+	onBrokenLinks: 'throw',
+	onBrokenMarkdownLinks: 'throw',
 	favicon: 'img/favicon.ico',
 
 	// GitHub pages deployment config.
@@ -108,9 +108,9 @@ const config = {
 		/** @type {import('@docusaurus/preset-classic').ThemeConfig} */
 		({
 			navbar: {
-				title: 'Web3.js',
+				title: 'web3.js',
 				logo: {
-					alt: 'Web3.js',
+					alt: 'web3.js',
 					src: 'img/web3js.svg',
 					href: 'https://web3js.org/',
 				},
@@ -142,13 +142,6 @@ const config = {
 						href: 'https://github.com/ChainSafe/web3.js/tree/4.x/',
 						label: 'GitHub',
 						position: 'right',
-					},
-
-					// Right
-					{
-						type: 'docsVersionDropdown',
-						position: 'right',
-						dropdownActiveClassDisabled: true,
 					},
 				],
 			},

@@ -30,10 +30,18 @@ import {
 	KeyStoreVersionError,
 	PBKDF2IterationsError,
 	PrivateKeyLengthError,
-	SignerError,
+	TransactionSigningError,
 	UndefinedRawTransactionError,
 } from 'web3-errors';
-import { Address, Bytes, HexString } from 'web3-types';
+import {
+	Address,
+	Bytes,
+	HexString,
+	CipherOptions,
+	PBKDF2SHA256Params,
+	ScryptParams,
+	KeyStore,
+} from 'web3-types';
 import {
 	bytesToBuffer,
 	bytesToHex,
@@ -44,19 +52,11 @@ import {
 	sha3Raw,
 	toChecksumAddress,
 	utf8ToHex,
+	uuidV4,
 } from 'web3-utils';
 import { isBuffer, isNullish, isString, validator } from 'web3-validator';
 import { keyStoreSchema } from './schemas';
-import {
-	CipherOptions,
-	KeyStore,
-	PBKDF2SHA256Params,
-	ScryptParams,
-	SignatureObject,
-	SignResult,
-	SignTransactionResult,
-	Web3Account,
-} from './types';
+import { SignatureObject, SignResult, SignTransactionResult, Web3Account } from './types';
 
 /**
  * Get the private key buffer after the validation
@@ -248,7 +248,7 @@ export const signTransaction = async (
 ): Promise<SignTransactionResult> => {
 	const signedTx = transaction.sign(Buffer.from(privateKey.substring(2), 'hex'));
 	if (isNullish(signedTx.v) || isNullish(signedTx.r) || isNullish(signedTx.s))
-		throw new SignerError('Signer Error');
+		throw new TransactionSigningError('Signer Error');
 
 	const validationErrors = signedTx.validate(true);
 
@@ -257,7 +257,7 @@ export const signTransaction = async (
 		for (const validationError of validationErrors) {
 			errorString += `${errorString} ${validationError}.`;
 		}
-		throw new SignerError(errorString);
+		throw new TransactionSigningError(errorString);
 	}
 
 	const rawTx = bytesToHex(signedTx.serialize());
@@ -352,37 +352,6 @@ export const recover = (
 	const address = toChecksumAddress(`0x${publicHash.slice(-40)}`);
 
 	return address;
-};
-
-/**
- * Generate a version 4 (random) uuid
- * https://github.com/uuidjs/uuid/blob/main/src/v4.js#L5
- */
-
-const uuidV4 = (): string => {
-	const bytes = randomBytes(16);
-
-	// https://github.com/ethers-io/ethers.js/blob/ce8f1e4015c0f27bf178238770b1325136e3351a/packages/json-wallets/src.ts/utils.ts#L54
-	// Section: 4.1.3:
-	// - time_hi_and_version[12:16] = 0b0100
-	/* eslint-disable-next-line */
-	bytes[6] = (bytes[6] & 0x0f) | 0x40;
-
-	// Section 4.4
-	// - clock_seq_hi_and_reserved[6] = 0b0
-	// - clock_seq_hi_and_reserved[7] = 0b1
-	/* eslint-disable-next-line */
-	bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-	const hexString = bytesToHex(bytes);
-
-	return [
-		hexString.substring(2, 10),
-		hexString.substring(10, 14),
-		hexString.substring(14, 18),
-		hexString.substring(18, 22),
-		hexString.substring(22, 34),
-	].join('-');
 };
 
 /**
@@ -574,7 +543,6 @@ export const encrypt = async (
 	const ciphertext = bytesToHex(cipher).slice(2);
 
 	const mac = sha3Raw(Buffer.from([...derivedKey.slice(16, 32), ...cipher])).replace('0x', '');
-
 	return {
 		version: 3,
 		id: uuidV4(),
@@ -621,15 +589,12 @@ export const privateKeyToAccount = (privateKey: Bytes, ignoreLength?: boolean): 
 		privateKey: bytesToHex(privateKeyBuffer),
 		// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		signTransaction: (_tx: Record<string, unknown>) => {
-			throw new SignerError('Do not have network access to sign the transaction');
+			throw new TransactionSigningError('Do not have network access to sign the transaction');
 		},
 		sign: (data: Record<string, unknown> | string) =>
 			sign(typeof data === 'string' ? data : JSON.stringify(data), privateKeyBuffer),
-		encrypt: async (password: string, options?: Record<string, unknown>) => {
-			const data = await encrypt(privateKeyBuffer, password, options);
-
-			return JSON.stringify(data);
-		},
+		encrypt: async (password: string, options?: Record<string, unknown>) =>
+			encrypt(privateKeyBuffer, password, options),
 	};
 };
 

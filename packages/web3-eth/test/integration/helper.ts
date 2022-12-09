@@ -38,6 +38,10 @@ export const sendFewTxes = async ({
 }: SendFewTxParams): Promise<TransactionReceipt[]> => {
 	const res: TransactionReceipt[] = [];
 	for (let i = 0; i < times; i += 1) {
+		// eslint-disable-next-line no-await-in-loop
+		await new Promise<void>(resolve => {
+			setTimeout(resolve, 500);
+		});
 		const tx: Web3PromiEvent<
 			TransactionReceipt,
 			SendTransactionEvents<typeof DEFAULT_RETURN_FORMAT>
@@ -48,12 +52,16 @@ export const sendFewTxes = async ({
 		});
 		res.push(
 			// eslint-disable-next-line no-await-in-loop
-			(await new Promise((resolve: Resolve) => {
+			(await new Promise((resolve: Resolve, reject) => {
 				// tx promise is handled separately
 				// eslint-disable-next-line no-void
 				void tx.on('receipt', (params: TransactionReceipt) => {
 					expect(params.status).toBe(BigInt(1));
 					resolve(params);
+				});
+				// eslint-disable-next-line no-void
+				void tx.on('error', error => {
+					reject(error);
 				});
 			})) as TransactionReceipt,
 		);

@@ -1,12 +1,31 @@
 name: 'Black Box Tests'
-  on:
+on:
     push:
       branches:
         - release/**
       tags:
         - v4.*
-  jobs:
-    black-box:
+jobs:
+  build:
+    strategy:
+      matrix:
+        node: [14, 16]
+    name: Build Packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+          cache: yarn
+      - run: corepack enable
+      - run: yarn
+      - run: tar -czf /tmp/web3-${{ matrix.node }}.js.tar.gz --exclude="./.git" ./
+      - uses: actions/upload-artifact@v3
+        with:
+          name: web3-${{ matrix.node }}.js.tar.gz
+          path: /tmp/web3-${{ matrix.node }}.js.tar.gz
+  black-box:
       name: Black Box
       needs: build
       runs-on: ubuntu-latest
@@ -27,6 +46,7 @@ name: 'Black Box Tests'
             name: web3-${{ matrix.node }}.js.tar.gz
             path: /tmp
         - run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
+        - run: corepack enable
         - run: |
             yarn test:blackbox:${{ matrix.backend }}:${{ matrix.mode }}
           shell: bash

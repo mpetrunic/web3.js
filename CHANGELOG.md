@@ -602,6 +602,9 @@ Released with 1.0.0-beta.37 code base.
 
 ## [4.0.0-alpha.0]
 
+Note: Yarn is resolving to some old deprecated package versions for 4.0.0-alpha.0 instead of latest alpha versions. A patch bump is posted so yarn users
+should use 4.0.1-alpha.0 for testing.
+
 ### Added
 
 #### web3-errors
@@ -723,4 +726,216 @@ Released with 1.0.0-beta.37 code base.
 -   `givenProvider` default value is undefined
 -   `currentProvider` default value is undefined
 
+## [4.0.1-alpha.0]
+
+### Fixed
+
+-   Dependency tree cannot be resolved by Yarn due to old deprecated packages picked by yarn - fixed (#5382)
+
+## [4.0.1-alpha.1]
+
+### Added
+
+#### web3-core
+
+-   If the response error was `execution reverted`, raise `ContractExecutionError` and pass the response error to it in order to be set as `innerError` (this innerError will be decoded at web3-eth-contract if its ABI was provided according to EIP-838). (#5434)
+-   Added a new configuration variable `enableExperimentalFeatures`. (#5481)
+-   `registerPlugin` method to `Web3Context` (#5393)
+-   `Web3PluginBase` exported abstract class (#5393)
+-   `Web3EthPluginBase` exported abstract class (#5393)
+
+#### web3-error
+
+-   Add optional `innerError` property to the abstract class `Web3Error`. This `innerError` could be `Error`, `Error[]` or `undefined`. (#5435) (#5434)
+-   The class `Web3ContractError` is moved to this package from `web3-eth-contract`. (#5434)
+-   Added the error code `ERR_TX_SIGNING` and used it inside `TransactionSigningError` (#5462)
+-   Added the error code `ERR_TX_GAS_MISMATCH` and used it inside `TransactionGasMismatchError` (#5462)
+-   Added `SignatureError` to `web3-errors/src/errors/signature_errors.ts` (moved from `web3-eth/src/errors.ts`) (#5462)
+-   Added the errors' classes to `web3-errors/src/errors/transaction_errors.ts` from `web3-eth/src/errors.ts` (#5462)
+-   Added `TransactionBlockTimeoutError` class and its error code `ERR_TX_BLOCK_TIMEOUT` (#5294)
+-   `ExistingPluginNamespaceError` class and it's error code `ERR_EXISTING_PLUGIN_NAMESPACE` (#5393)
+
+#### web3-eth
+
+-   `web3-rpc-methods` dependency (#5441)
+-   Added chain and hardfork validation for transaction and transaction.common object in `validateTransactionForSigning`
+
+#### web3-eth-abi
+
+-   If an error happens when decoding a value, preserve that exception at `innerError` inside the error class `AbiError`. (#5435)
+-   Add basic functionality that is used, by `web3-eth-contract`, when decoding error data according to EIP-838. (#5434)
+
+#### web3-eth-contract
+
+-   Decoding error data, using Error ABI if available, according to EIP-838. (#5434)
+-   The class `Web3ContractError` is moved from this package to `web3-error`. (#5434)
+
+#### web3-plugin-example
+
+-   Example plugin for wrapping contract methods to provide custom functionality (#5393)
+-   Example plugin for custom RPC methods using the `requestManager` (#5393)
+
+#### web3-utils
+
+-   Added and exported three reusable utility functions: `pollTillDefined`, `rejectIfTimeout` and `rejectIfConditionAtInterval` which are useful when dealing with promises that involves polling, rejecting after timeout or rejecting if a condition was met when calling repeatably at every time intervals.
+
+#### web3-eth-personal
+
+-   `web3-rpc-methods` dependency (#5441)
+
+#### web3-eth-net
+
+-   `web3-rpc-methods` dependency (#5441)
+
+#### web3-providers-ipc
+
+-   Show error message and return dummy promise if socket is not writable (#5294)
+
+#### web3-rpc-methods
+
+-   web3-rpc-methods package added
+
+#### web3-types
+
+-   `Web3EthExecutionAPI` export (#5441)
+-   `Web3NetAPI` export (#5441)
+-   `EthPersonalAPI` export (#5441)
+
+### Changed
+
+#### web3-core
+
+-   Default value for `API` generic for `Web3ContextObject` from `any` to `unknown` (#5393)
+-   Default value for `API` generic for `Web3ContextInitOptions` from `any` to `unknown` (#5393)
+-   Added validation when `defaultHardfork` and `defaultCommon.hardfork` are different in web3config
+-   Added validation when `defaultChain` and `defaultCommon.basechain` are different in web3config
+-   Added a new configuration variable `enableExperimentalFeatures`. (#5481)
+
+#### web3-error
+
+-   Moved `SignerError` from `web3-errors/src/errors/signature_errors.ts` to `web3-errors/src/errors/transaction_errors.ts`, and renamed it to `TransactionSigningError` (#5462)
+-   Corrected the error code for `JSONRPC_ERR_UNAUTHORIZED` to be `4100` (#5462)
+
+#### web3-eth
+
+-   `Web3EthExecutionAPI` is now imported via `web3-types` instead of `web3_eth_execution_api.ts` (#5441)
+-   Replace the imported methods from `rpc_methods.ts` with `ethRpcMethods` imports from `web3-rpc-methods` (#5441)
+-   `Web3NetAPI` is now imported from `web3-types` instead of `web3-net` (#5441)
+-   Moved `rpc_methods` tests to `web3-rpc-methods` (#5441)
+-   Implemented the logic for `transactionBlockTimeout` (#5294)
+-   Use subscription at `rejectIfBlockTimeout` when the provider supports subscription. Implement this as an experimental feature (if `useSubscriptionWhenCheckingBlockTimeout` at `enableExperimentalFeatures` is `true`). (#5481)
+-   At some test cases, optimized some codes. (#5481)
+
+#### web3-eth-accounts
+
+-   `signTransaction` and `privateKeyToAccount` will throw `TransactionSigningError` instead of `SignerError` now (#5462)
+
+#### web3-eth-ens
+
+-   `Web3NetAPI` is now imported from `web3-types` instead of `web3-net` (#5441)
+
+#### web3-eth-personal
+
+-   Import `EthPersonalAPI` from `web3-types` instead of local import (#5441)
+-   Replace the imported methods from `rcp_methods.ts` with `personalRpcMethods` imports from `web3-rpc-methods` (#5441)
+-   Replace use of `EthPersonalAPIManager` with `Web3RequestManager<EthPersonalAPI>` (#5441)
+
+#### web3-eth-net
+
+-   `Web3NetAPI` is now imported from `web3-types` instead of `web3_net_api.ts` (#5441)
+-   Replace the imported methods from `rpc_methods.ts` with `netRpcMethods` imports from `web3-rpc-methods` (#5441)
+
+#### web3-types
+
+-   `Web3APISpec`, `Web3APIMethod`, and `Web3APIParams` now supports `unknown` APIs (#5393)
+
+### Fixed
+
+#### web3-error
+
+-   Corrected the error code for `JSONRPC_ERR_UNAUTHORIZED` to be `4100` (#5462)
+
+#### web3-eth
+
+-   Fix `getBlock` returning empty transactions object on `hydrated` true (#5556)
+-   [setimmediate](https://github.com/yuzujs/setImmediate) package to polyfill [setImmediate](https://nodejs.org/api/timers.html#setimmediatecallback-args) for browsers (#5450)
+
+#### web3-eth-contract
+
+-   According to the latest change in `web3-eth-abi`, the decoded values of the large numbers, returned from function calls or events, are now available as `BigInt`. (#5435)
+
+#### web3-eth-abi
+
+-   Return `BigInt` instead of `string` when decoding function parameters for large numbers, such as `uint256`. (#5435)
+
+#### web3-types
+
+-   `Web3APISpec`, `Web3APIMethod`, and `Web3APIParams` now supports `unknown` APIs (#5393)
+
+### Removed
+
+#### web3-eth
+
+-   Moved the errors' classes from `web3-eth/src/errors.ts` to `web3-errors/src/errors/transaction_errors.ts` (#5462)
+
+#### web3-eth-personal
+
+-   Exported type `EthPersonalAPIManager`, `EthPersonalAPI` is not exported via `web3-types` (#5441)
+
+#### web3-eth-net
+
+-   `rpcMethods` export, these methods are now exported via `web3-rpc-methods` as `netRpcMethods` (#5441)
+-   `Web3NetAPI` export, now exported via `web3-types` as `Web3NetAPI` (#5441)
+
+#### web3-validator
+
+-   Removed direct function `toJSON()` in `Web3ValidatorError` class as its available via base class (#5435)
+
 ## [Unreleased]
+
+### Added
+
+#### web3-types
+
+-   These types were moved from `web3-eth-accounts` to `web3-types` package: Cipher, CipherOptions, ScryptParams, PBKDF2SHA256Params, KeyStore (#5581 )
+
+#### web3-utils
+
+-   Export a new function `uuidV4` that generates a random v4 Uuid (#5373).
+-   Enable passing a starting number, to increment based on it, for the Json Rpc Request `id` (#5652).
+-   Export a new function `isPromise` that checks if an object is a promise (#5652).
+
+#### web3-eth-contract
+
+-   `SpecialOutput` type was added as a generic type into the call function to support reassigning output types (#5631)
+-   Overloaded functions types (`ContractOverloadedMethodInputs`, `ContractOverloadedMethodOutputs`) was added (#5631)
+
+### Fixed
+
+#### web3-eth-contract
+
+-   Emit past contract events based on `fromBlock` when passed to `contract.events.someEventName` (#5201)
+-   Use different types for `ContractOptions` -> `jsonInterface` setter and getter (#5474)
+-   An issue within the `Contract` constructor where `provider` wasn't being set when provided within the `optionsOrContextOrReturnFormat` argument (#5669)
+
+#### web3-types
+
+-   Make the `request` method of `EIP1193Provider` class, compatible with EIP 1193 (#5591)
+
+#### web3-utils
+
+-   Use Uuid for the response id, to fix the issue "Responses get mixed up due to conflicting payload IDs" (#5373).
+
+#### web3-validator
+
+-   Fix `isHex`returning `false` for `-123`, fix `isHexStrict` returning `true` for `-0x`, and fix `isHex` returning `true` for empty strings `` (#5373).
+
+#### web3-eth-abi
+
+-   Fix ContractMethodOutputParameters type to support output object types by index and string key. Also, it returns void if ABI doesn't have outputs and returns exactly one type if the output array has only one element. (#5631)
+
+### Removed
+
+#### web3-eth-accounts
+
+-   These types were moved from `web3-eth-accounts` to `web3-types` package: Cipher, CipherOptions, ScryptParams, PBKDF2SHA256Params, KeyStore (#5581 )

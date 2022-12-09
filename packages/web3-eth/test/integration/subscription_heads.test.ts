@@ -20,8 +20,8 @@ import { Web3Eth } from '../../src';
 import { sendFewTxes, Resolve } from './helper';
 import { NewHeadsSubscription } from '../../src/web3_subscriptions';
 import {
+	createTempAccount,
 	describeIf,
-	getSystemTestAccounts,
 	getSystemTestProvider,
 	isWs,
 } from '../fixtures/system_test_utils';
@@ -33,50 +33,56 @@ const subNames: Array<SubName> = ['newHeads', 'newBlockHeaders'];
 describeIf(isWs)('subscription', () => {
 	let web3Eth: Web3Eth;
 	let clientUrl: string;
-	let accounts: string[] = [];
 	let providerWs: WebSocketProvider;
-	beforeAll(async () => {
+	let tempAcc: { address: string; privateKey: string };
+	let tempAcc2: { address: string; privateKey: string };
+
+	beforeEach(async () => {
+		tempAcc = await createTempAccount();
+		tempAcc2 = await createTempAccount();
+	});
+	beforeAll(() => {
 		clientUrl = getSystemTestProvider();
-		accounts = await getSystemTestAccounts();
-		providerWs = new WebSocketProvider(
-			clientUrl,
-			{},
-			{ delay: 1, autoReconnect: false, maxAttempts: 1 },
-		);
+		providerWs = new WebSocketProvider(clientUrl);
+		web3Eth = new Web3Eth(providerWs as Web3BaseProvider);
 	});
 	afterAll(() => {
 		providerWs.disconnect();
 	});
-
 	describe('heads', () => {
 		it.each(subNames)(`wait for ${checkTxCount} newHeads`, async (subName: SubName) => {
-			web3Eth = new Web3Eth(providerWs as Web3BaseProvider);
 			const sub: NewHeadsSubscription = await web3Eth.subscribe(subName);
-			const from = accounts[0];
-			const to = accounts[1];
+			const from = tempAcc.address;
+			const to = tempAcc2.address;
 			const value = `0x1`;
 
 			let times = 0;
-			const pr = new Promise((resolve: Resolve) => {
+			const pr = new Promise((resolve: Resolve, reject) => {
 				sub.on('data', (data: BlockHeaderOutput) => {
 					if (data.parentHash) {
 						times += 1;
 					}
 					expect(times).toBeGreaterThanOrEqual(times);
 					if (times >= checkTxCount) {
+						sub.off('data', () => {
+							// no need to do anything
+						});
 						resolve();
 					}
+				});
+				sub.on('error', error => {
+					reject(error);
 				});
 			});
 
 			await sendFewTxes({ web3Eth, from, to, value, times: checkTxCount });
 			await pr;
+			await web3Eth.subscriptionManager?.removeSubscription(sub);
 		});
 		it.each(subNames)(`clear`, async (subName: SubName) => {
-			web3Eth = new Web3Eth(providerWs as Web3BaseProvider);
 			const sub: NewHeadsSubscription = await web3Eth.subscribe(subName);
 			expect(sub.id).toBeDefined();
-			await web3Eth.clearSubscriptions();
+			await web3Eth.subscriptionManager?.removeSubscription(sub);
 			expect(sub.id).toBeUndefined();
 		});
 	});

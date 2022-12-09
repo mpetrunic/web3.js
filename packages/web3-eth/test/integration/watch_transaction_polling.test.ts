@@ -18,11 +18,11 @@ import { DEFAULT_RETURN_FORMAT } from 'web3-utils';
 import { Web3PromiEvent } from 'web3-core';
 import { TransactionReceipt } from 'web3-types';
 import { Web3Eth, SendTransactionEvents } from '../../src';
-import { sendFewTxes } from './helper';
 
 import {
+	closeOpenConnection,
+	createTempAccount,
 	describeIf,
-	getSystemTestAccounts,
 	getSystemTestProvider,
 	isHttp,
 	isIpc,
@@ -32,15 +32,21 @@ const waitConfirmations = 5;
 
 type Resolve = (value?: unknown) => void;
 
-// TODO: add isIpc when finish #5144
 describeIf(isHttp || isIpc)('watch polling transaction', () => {
 	let web3Eth: Web3Eth;
-	let accounts: string[] = [];
 	let clientUrl: string;
+	let tempAcc: { address: string; privateKey: string };
+	let tempAcc2: { address: string; privateKey: string };
 
+	beforeEach(async () => {
+		tempAcc = await createTempAccount();
+		tempAcc2 = await createTempAccount();
+	});
 	beforeAll(async () => {
 		clientUrl = getSystemTestProvider();
-		accounts = await getSystemTestAccounts();
+	});
+	afterAll(async () => {
+		await closeOpenConnection(web3Eth);
 	});
 
 	describe('wait for confirmation polling', () => {
@@ -48,8 +54,8 @@ describeIf(isHttp || isIpc)('watch polling transaction', () => {
 			web3Eth = new Web3Eth(clientUrl);
 			web3Eth.setConfig({ transactionConfirmationBlocks: waitConfirmations });
 
-			const from = accounts[0];
-			const to = accounts[1];
+			const from = tempAcc.address;
+			const to = tempAcc2.address;
 			const value = `0x1`;
 
 			const sentTx: Web3PromiEvent<
@@ -60,17 +66,24 @@ describeIf(isHttp || isIpc)('watch polling transaction', () => {
 				value,
 				from,
 			});
-			let shouldBe = 1;
 			const confirmationPromise = new Promise((resolve: Resolve) => {
 				// Tx promise is handled separately
 				// eslint-disable-next-line no-void
-				void sentTx.on('confirmation', ({ confirmations }) => {
-					expect(Number(confirmations)).toBe(shouldBe);
-					shouldBe += 1;
-					if (shouldBe >= waitConfirmations) {
-						resolve();
-					}
-				});
+				void sentTx.on(
+					'confirmation',
+					async ({ confirmations }: { confirmations: bigint }) => {
+						if (confirmations >= waitConfirmations) {
+							resolve();
+						} else {
+							// Send a transaction to cause dev providers creating new blocks to fire the 'confirmation' event again.
+							await web3Eth.sendTransaction({
+								to,
+								value,
+								from,
+							});
+						}
+					},
+				);
 			});
 			await new Promise((resolve: Resolve) => {
 				// Tx promise is handled separately
@@ -82,8 +95,8 @@ describeIf(isHttp || isIpc)('watch polling transaction', () => {
 			});
 
 			await sentTx;
-			await sendFewTxes({ web3Eth, from, to, value, times: waitConfirmations });
 			await confirmationPromise;
+			sentTx.removeAllListeners();
 		});
 	});
 });

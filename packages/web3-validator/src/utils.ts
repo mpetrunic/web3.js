@@ -15,6 +15,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import { InvalidNumberError } from 'web3-errors';
 import { VALID_ETH_BASE_TYPES } from './constants';
 import {
 	FullValidationSchema,
@@ -291,13 +292,6 @@ export const transformJsonDataToAbiFormat = (
 	return transformedData;
 };
 
-// const data = abiToJsonSchemaCases[14];
-// console.log(data.title);
-// console.log(data.json.data);
-// console.log(data.abi.data);
-// const output = transformJsonDataToAbiFormat(data.abi.fullSchema, data.json.data);
-// console.log(output);
-
 /**
  * Code points to int
  */
@@ -336,6 +330,10 @@ export const hexToNumber = (value: string): bigint | number => {
 		return negative ? -num : num;
 	}
 
+	if (num < Number.MIN_SAFE_INTEGER) {
+		return num;
+	}
+
 	return negative ? -1 * Number(num) : Number(num);
 };
 
@@ -352,14 +350,16 @@ export const numberToHex = (value: ValidInputTypes): string => {
 	}
 
 	if (typeof value === 'string' && isHexStrict(value)) {
-		return numberToHex(hexToNumber(value));
+		const [negative, hex] = value.startsWith('-') ? [true, value.slice(1)] : [false, value];
+		const hexValue = hex.split(/^(-)?0(x|X)/).slice(-1)[0];
+		return `${negative ? '-' : ''}0x${hexValue.replace(/^0+/, '').toLowerCase()}`;
 	}
 
 	if (typeof value === 'string' && !isHexStrict(value)) {
 		return numberToHex(BigInt(value));
 	}
 
-	throw new Error('Invalid number value');
+	throw new InvalidNumberError(value);
 };
 
 /**

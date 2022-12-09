@@ -206,6 +206,15 @@ export const toHexValidData: [Numbers | Bytes | Address | boolean, [HexString, V
 	[true, ['0x01', 'bool']],
 	[false, ['0x00', 'bool']],
 	['0x123c', ['0x123c', 'bytes']],
+	[
+		'0x72fdb1c1ddd4c67804f42b93de95cf6a8c51d2d1',
+		['0x72fdb1c1ddd4c67804f42b93de95cf6a8c51d2d1', 'address'],
+	],
+	['-0x01', ['-0x1', 'int256']],
+];
+
+export const toHexInvalidData: [any, string][] = [
+	[undefined, 'Invalid value given "undefined". Error: can not be converted to hex.'],
 ];
 
 const conversionBaseData: [[Numbers, EtherUnits], string][] = [
@@ -255,13 +264,14 @@ export const toWeiValidData: [[Numbers, EtherUnits], string][] = [
 ];
 
 export const fromWeiInvalidData: [[any, any], string][] = [
-	[['123.34', 'kwei'], 'value "123.34" at "/0" must pass "int" validation'],
+	// eslint-disable-next-line no-useless-escape
+	[['123.34', 'kwei'], 'Invalid value given "123.34". Error: can not parse as number data.'],
 	// Using "null" value intentionally for validation
 	// eslint-disable-next-line no-null/no-null
-	[[null, 'kwei'], 'value at "/0" must pass "int" validation'],
-	[[undefined, 'kwei'], 'value at "/0" must pass "int" validation'],
-	[[{}, 'kwei'], 'value "[object Object]" at "/0" must pass "int" validation'],
-	[['data', 'kwei'], 'value "data" at "/0" must pass "int" validation'],
+	[[null, 'kwei'], 'Invalid value given "undefined". Error: can not parse as number data.'],
+	[[undefined, 'kwei'], 'Invalid value given "undefined". Error: can not parse as number data.'],
+	[[{}, 'kwei'], 'Invalid value given "{}". Error: can not parse as number data'],
+	[['data', 'kwei'], 'Invalid value given "data". Error: can not parse as number data.'],
 	[['1234', 'uwei'], 'Invalid value given "uwei". Error: invalid unit.'],
 ];
 
@@ -279,6 +289,9 @@ export const toCheckSumValidData: [string, string][] = [
 	['0x5fbc2b6c19ee3dd5f9af96ff337ddc89e30ceaef', '0x5FBc2b6C19EE3DD5f9Af96ff337DDC89e30ceAef'],
 	['0xa54D3c09E34aC96807c1CC397404bF2B98DC4eFb', '0xa54d3c09E34aC96807c1CC397404bF2B98DC4eFb'],
 ];
+export const toCheckSumInvalidData: [string, string][] = [
+	['not an address', 'Invalid value given "not an address". Error: invalid ethereum address.'],
+];
 
 export const bytesToBufferInvalidData: [any, string][] = bytesToHexInvalidData;
 
@@ -294,4 +307,17 @@ export const bytesToBufferValidData: [Bytes, Buffer][] = [
 	['0X123', Buffer.from('0123', 'hex')],
 	['0x1234', Buffer.from('1234', 'hex')],
 	[Buffer.from('0c12', 'hex'), Buffer.from('0c12', 'hex')],
+];
+
+export const toBigIntValidData: [any, bigint][] = [
+	[BigInt(1), BigInt(1)],
+	[24, BigInt(24)],
+	['123', BigInt(123)],
+	['0x04', BigInt(4)],
+];
+
+export const toBigIntInvalidData: [any, string][] = [
+	[Buffer.from(''), 'can not parse as number data'],
+	['wwwww', ' Error: can not parse as number data'],
+	['zzzzee0xiiuu', ' Error: can not parse as number data'],
 ];

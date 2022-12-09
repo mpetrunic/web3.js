@@ -21,10 +21,10 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version: ${{ matrix.node }}
           cache: yarn
-      - run: yarn
-#      - run: ./scripts/geth.sh download
+      - run: corepack enable
+      - run: yarn install
       - run: tar -czf /tmp/web3-${{ matrix.node }}.js.tar.gz --exclude="./.git" ./
       - uses: actions/upload-artifact@v3
         with:
@@ -40,6 +40,7 @@ jobs:
         with:
           name: web3-14.js.tar.gz
           path: /tmp
+      - run: corepack enable
       - run: tar -xf /tmp/web3-14.js.tar.gz -C ./
       - run: yarn lint
 
@@ -49,12 +50,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
         matrix:
-            node: [ 14, 16 ]
+          node: [14, 16]
     steps:
         -   uses: actions/download-artifact@v3
             with:
                 name: web3-${{ matrix.node }}.js.tar.gz
                 path: /tmp
+        - run: corepack enable
         -   run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
         -   run: yarn build:web
 
@@ -71,6 +73,7 @@ jobs:
           name: web3-${{ matrix.node }}.js.tar.gz
           path: /tmp
       - run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
+      - run: corepack enable
       - run: yarn test:unit
 
   integration:
@@ -92,6 +95,7 @@ jobs:
           name: web3-${{ matrix.node }}.js.tar.gz
           path: /tmp
       - run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
+      - run: corepack enable
       - run: yarn test:e2e:${{ matrix.backend }}:${{ matrix.mode }}
         shell: bash
 
@@ -105,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [ 14, 16 ]
+        node: [14, 16]
         backend: [ 'geth' ]
         mode: [ 'ipc' ]
     steps:
@@ -113,7 +117,8 @@ jobs:
           with:
             name: web3-${{ matrix.node }}.js.tar.gz
             path: /tmp
-      -   run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
+      - run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
+      - run: corepack enable
       -   run: yarn test:e2e:${{ matrix.backend }}:${{ matrix.mode }}
           shell: bash
 
@@ -127,13 +132,21 @@ jobs:
         node: [14, 16]
         browser: ['electron', 'chrome', 'firefox']
     steps:
+      - uses: browser-actions/setup-firefox@latest
+        if: matrix.browser == 'firefox'
       - uses: actions/download-artifact@v3
         with:
           name: web3-${{ matrix.node }}.js.tar.gz
           path: /tmp
       - run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
-      - run: yarn test:e2e:ganache:ws:${{ matrix.browser }}
-        shell: bash
+      - run: corepack enable
+      - name: Cypress run
+        # temporarily until fix is merged upstream
+        uses: cypress-io/github-action@v5
+        with:
+            install: false
+            command: yarn run test:e2e:ganache:ws:${{ matrix.browser }}
+            cache-key: node-v${{ matrix.node }}-on-${{ matrix.browser }}-hash-${{ hashFiles('yarn.lock') }}
 
   build-docs:
     name: Build Docs
@@ -143,9 +156,10 @@ jobs:
         matrix:
             node: [ 16 ]
     steps:
-        -   uses: actions/download-artifact@v3
-            with:
-                name: web3-${{ matrix.node }}.js.tar.gz
-                path: /tmp
-        -   run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
-        -   run: yarn build:docs
+        - uses: actions/download-artifact@v3
+          with:
+              name: web3-${{ matrix.node }}.js.tar.gz
+              path: /tmp
+        - run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
+        - run: corepack enable
+        - run: yarn build:docs

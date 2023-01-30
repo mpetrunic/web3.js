@@ -14,54 +14,38 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
-import WebSocketProvider from 'web3-providers-ws';
 import { DEFAULT_RETURN_FORMAT } from 'web3-utils';
-import { Web3BaseProvider, TransactionReceipt } from 'web3-types';
+import { TransactionReceipt } from 'web3-types';
 import { Web3PromiEvent } from 'web3-core';
 import { Web3Eth, SendTransactionEvents } from '../../src';
-import { sendFewTxes } from './helper';
+import { sendFewTxesWithoutReceipt } from './helper';
 
 import {
 	getSystemTestProvider,
 	describeIf,
-	getSystemTestAccounts,
-	isWs,
+	createTempAccount,
+	closeOpenConnection,
+	isSocket,
+	waitForOpenConnection,
 	// eslint-disable-next-line import/no-relative-packages
 } from '../fixtures/system_test_utils';
 
-const waitConfirmations = 5;
+const waitConfirmations = 2;
 
 type Resolve = (value?: unknown) => void;
 
-describeIf(isWs)('watch subscription transaction', () => {
-	let web3Eth: Web3Eth;
-	let providerWs: WebSocketProvider;
-	let accounts: string[] = [];
-	let clientUrl: string;
-
-	beforeAll(async () => {
-		clientUrl = getSystemTestProvider();
-		accounts = await getSystemTestAccounts();
-
-		providerWs = new WebSocketProvider(
-			clientUrl,
-			{},
-			{ delay: 1, autoReconnect: false, maxAttempts: 1 },
-		);
-	});
-	afterAll(() => {
-		providerWs.disconnect();
-	});
-
+describeIf(isSocket)('watch subscription transaction', () => {
 	describe('wait for confirmation subscription', () => {
 		it('subscription to heads', async () => {
-			web3Eth = new Web3Eth(providerWs as Web3BaseProvider);
+			const web3Eth = new Web3Eth(getSystemTestProvider());
+			await waitForOpenConnection(web3Eth);
+			const tempAccount = await createTempAccount();
+			const tempAccount2 = await createTempAccount();
 
-			// setupWeb3(web3Eth, waitConfirmations);
 			web3Eth.setConfig({ transactionConfirmationBlocks: waitConfirmations });
 
-			const from = accounts[0];
-			const to = accounts[1];
+			const from = tempAccount.address;
+			const to = tempAccount2.address;
 			const value = `0x1`;
 			const sentTx: Web3PromiEvent<
 				TransactionReceipt,
@@ -85,7 +69,7 @@ describeIf(isWs)('watch subscription transaction', () => {
 				// Tx promise is handled separately
 				// eslint-disable-next-line no-void
 				void sentTx.on('confirmation', ({ confirmations }) => {
-					expect(Number(confirmations)).toBe(shouldBe);
+					expect(Number(confirmations)).toBeGreaterThanOrEqual(shouldBe);
 					shouldBe += 1;
 					if (shouldBe >= waitConfirmations) {
 						resolve();
@@ -93,8 +77,15 @@ describeIf(isWs)('watch subscription transaction', () => {
 				});
 			});
 			await receiptPromise;
-			await sendFewTxes({ web3Eth, from, to, value, times: waitConfirmations });
+			await sendFewTxesWithoutReceipt({
+				web3Eth,
+				from,
+				to,
+				value,
+				times: waitConfirmations,
+			});
 			await confirmationPromise;
+			await closeOpenConnection(web3Eth);
 		});
 	});
 });

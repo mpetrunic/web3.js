@@ -34,3 +34,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - I've improved the security in XY (#1000)
 
 -->
+
+## [0.1.1-alpha.1]
+
+### Removed
+
+-   Removed direct function `toJSON()` in `Web3ValidatorError` class as its available via base class (#5435)
+
+## [0.1.1-alpha.2]
+
+### Changed
+
+-   Updated Web3.js dependencies (#5664)
+
+### Fixed
+
+-   Fix `isHex`returning `false` for `-123`, fix `isHexStrict` returning `true` for `-0x`, and fix `isHex` returning `true` for empty strings `` (#5373).
+
+## [0.1.1-alpha.3]
+
+### Fixed
+
+-   Fix issue when importing `web3-validator` package within browser environments (Webpack minified filename changed from `index.min.js` to `web3-validator.min.js`) (#5710)
+
+## [0.1.1-alpha.4]
+
+### Changed
+
+-   `tsc` compiled files moved to `lib/` directory from `dist/` (#5739)
+
+## [0.1.1-alpha.5]
+
+### Removed
+
+-   `build` entry from `package.json` (#5755)
+
+## [Unreleased]

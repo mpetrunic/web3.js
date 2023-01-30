@@ -34,3 +34,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - I've improved the security in XY (#1000)
 
 -->
+
+## [4.0.1-alpha.1]
+
+### Added
+
+-   Show error message and return dummy promise if socket is not writable (#5294)
+
+## [4.0.1-alpha.2]
+
+### Changed
+
+-   Updated Web3.js dependencies (#5664)
+
+## [4.0.1-alpha.3]
+
+### Changed
+
+-   Updated dependencies (#5725)
+
+## [4.0.1-alpha.4]
+
+### Changed
+
+-   `tsc` compiled files moved to `lib/` directory from `dist/` (#5739)
+-   Refactor to use common SocketProvider class (#5683)
+
+## [4.0.1-alpha.5]
+
+### Changed
+
+-   web3.js dependencies (#5757)
+
+## [Unreleased]

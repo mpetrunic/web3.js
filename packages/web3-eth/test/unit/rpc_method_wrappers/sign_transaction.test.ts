@@ -15,15 +15,16 @@ You should have received a copy of the GNU Lesser General Public License
 along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Web3Context } from 'web3-core';
-import { DEFAULT_RETURN_FORMAT, ETH_DATA_FORMAT, FMT_BYTES, FMT_NUMBER, format } from 'web3-utils';
+import { DEFAULT_RETURN_FORMAT, ETH_DATA_FORMAT } from 'web3-utils';
+import { isString } from 'web3-validator';
+import { SignedTransactionInfoAPI, Web3EthExecutionAPI } from 'web3-types';
+import { ethRpcMethods } from 'web3-rpc-methods';
 
-import { signTransaction as rpcMethodsSignTransaction } from '../../../src/rpc_methods';
-import { Web3EthExecutionAPI } from '../../../src/web3_eth_execution_api';
 import { signTransaction } from '../../../src/rpc_method_wrappers';
-import { mockRpcResponse, testData } from './fixtures/sign_transaction';
+import { returnFormat, testData } from './fixtures/sign_transaction';
 import { formatTransaction } from '../../../src';
 
-jest.mock('../../../src/rpc_methods');
+jest.mock('web3-rpc-methods');
 
 describe('signTransaction', () => {
 	let web3Context: Web3Context<Web3EthExecutionAPI>;
@@ -35,13 +36,17 @@ describe('signTransaction', () => {
 	it.each(testData)(
 		`should call rpcMethods.signTransaction with expected parameters\nTitle: %s\nInput parameters: %s\n`,
 		async (_, inputParameters) => {
-			const [inputTransaction] = inputParameters;
+			const [inputTransaction, signedTransactionInfo] = inputParameters;
 			const inputTransactionFormatted = formatTransaction(inputTransaction, ETH_DATA_FORMAT);
 
-			(rpcMethodsSignTransaction as jest.Mock).mockResolvedValueOnce(mockRpcResponse.raw);
+			(ethRpcMethods.signTransaction as jest.Mock).mockResolvedValueOnce(
+				isString(signedTransactionInfo as string)
+					? signedTransactionInfo
+					: (signedTransactionInfo as SignedTransactionInfoAPI).raw,
+			);
 
-			await signTransaction(web3Context, ...inputParameters, DEFAULT_RETURN_FORMAT);
-			expect(rpcMethodsSignTransaction).toHaveBeenCalledWith(
+			await signTransaction(web3Context, inputTransaction, DEFAULT_RETURN_FORMAT);
+			expect(ethRpcMethods.signTransaction).toHaveBeenCalledWith(
 				web3Context.requestManager,
 				inputTransactionFormatted,
 			);
@@ -51,19 +56,15 @@ describe('signTransaction', () => {
 	it.each(testData)(
 		`should format mockRpcResponse using provided return format\nTitle: %s\nInput parameters: %s\n`,
 		async (_, inputParameters) => {
-			const [inputTransaction] = inputParameters;
-			const expectedReturnFormat = { number: FMT_NUMBER.STR, bytes: FMT_BYTES.BUFFER };
-			const expectedFormattedResult = {
-				raw: format({ eth: 'bytes' }, mockRpcResponse.raw, expectedReturnFormat),
-				tx: formatTransaction(inputTransaction, expectedReturnFormat),
-			};
-			(rpcMethodsSignTransaction as jest.Mock).mockResolvedValueOnce(mockRpcResponse.raw);
-
-			const result = await signTransaction(
-				web3Context,
-				...inputParameters,
-				expectedReturnFormat,
+			const [inputTransaction, signedTransactionInfo, expectedFormattedResult] =
+				inputParameters;
+			(ethRpcMethods.signTransaction as jest.Mock).mockResolvedValueOnce(
+				isString(signedTransactionInfo as string)
+					? signedTransactionInfo
+					: (signedTransactionInfo as SignedTransactionInfoAPI).raw,
 			);
+
+			const result = await signTransaction(web3Context, inputTransaction, returnFormat);
 			expect(result).toStrictEqual(expectedFormattedResult);
 		},
 	);

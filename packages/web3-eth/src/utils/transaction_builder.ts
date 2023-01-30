@@ -30,19 +30,25 @@ import {
 	ValidChains,
 	Hardfork,
 	Transaction,
-	TransactionWithLocalWalletIndex,
+	TransactionWithFromLocalWalletIndex,
+	TransactionWithToLocalWalletIndex,
+	TransactionWithFromAndToLocalWalletIndex,
+	Common,
+	Web3NetAPI,
+	Numbers,
 } from 'web3-types';
 import { Web3Context } from 'web3-core';
 import { privateKeyToAddress } from 'web3-eth-accounts';
-import { getId, Web3NetAPI } from 'web3-net';
+import { getId } from 'web3-net';
 import { isNullish, isNumber } from 'web3-validator';
-import { NUMBER_DATA_FORMAT } from '../constants';
 import {
 	InvalidTransactionWithSender,
+	InvalidTransactionWithReceiver,
 	LocalWalletNotAvailableError,
 	TransactionDataAndInputError,
 	UnableToPopulateNonceError,
-} from '../errors';
+} from 'web3-errors';
+import { NUMBER_DATA_FORMAT } from '../constants';
 // eslint-disable-next-line import/no-cycle
 import { getChainId, getTransactionCount } from '../rpc_method_wrappers';
 import { detectTransactionType } from './detect_transaction_type';
@@ -51,19 +57,24 @@ import { getTransactionGasPricing } from './get_transaction_gas_pricing';
 import { transactionSchema } from '../schemas';
 import { InternalTransaction } from '../types';
 
-export const getTransactionFromAttr = (
+export const getTransactionFromOrToAttr = (
+	attr: 'from' | 'to',
 	web3Context: Web3Context<EthExecutionAPI>,
-	transaction?: Transaction | TransactionWithLocalWalletIndex,
+	transaction?:
+		| Transaction
+		| TransactionWithFromLocalWalletIndex
+		| TransactionWithToLocalWalletIndex
+		| TransactionWithFromAndToLocalWalletIndex,
 	privateKey?: HexString | Buffer,
-) => {
-	if (transaction?.from !== undefined) {
-		if (typeof transaction.from === 'string' && isAddress(transaction.from)) {
-			return transaction.from;
+): Address | undefined => {
+	if (transaction !== undefined && attr in transaction && transaction[attr] !== undefined) {
+		if (typeof transaction[attr] === 'string' && isAddress(transaction[attr] as string)) {
+			return transaction[attr] as Address;
 		}
-		if (isNumber(transaction.from)) {
+		if (isNumber(transaction[attr] as Numbers)) {
 			if (web3Context.wallet) {
 				const account = web3Context.wallet.get(
-					format({ eth: 'uint' }, transaction.from, NUMBER_DATA_FORMAT),
+					format({ eth: 'uint' }, transaction[attr] as Numbers, NUMBER_DATA_FORMAT),
 				);
 
 				if (!isNullish(account)) {
@@ -74,11 +85,16 @@ export const getTransactionFromAttr = (
 			}
 			throw new LocalWalletNotAvailableError();
 		} else {
-			throw new InvalidTransactionWithSender(transaction.from);
+			throw attr === 'from'
+				? new InvalidTransactionWithSender(transaction.from)
+				: // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+				  new InvalidTransactionWithReceiver(transaction.to);
 		}
 	}
-	if (!isNullish(privateKey)) return privateKeyToAddress(privateKey);
-	if (!isNullish(web3Context.defaultAccount)) return web3Context.defaultAccount;
+	if (attr === 'from') {
+		if (!isNullish(privateKey)) return privateKeyToAddress(privateKey);
+		if (!isNullish(web3Context.defaultAccount)) return web3Context.defaultAccount;
+	}
 
 	return undefined;
 };
@@ -124,7 +140,8 @@ export async function defaultTransactionBuilder<ReturnType = Record<string, unkn
 	) as InternalTransaction;
 
 	if (isNullish(populatedTransaction.from)) {
-		populatedTransaction.from = getTransactionFromAttr(
+		populatedTransaction.from = getTransactionFromOrToAttr(
+			'from',
 			options.web3Context,
 			undefined,
 			options.privateKey,
@@ -161,6 +178,17 @@ export async function defaultTransactionBuilder<ReturnType = Record<string, unkn
 	}
 
 	if (isNullish(populatedTransaction.common)) {
+		if (options.web3Context.defaultCommon) {
+			const common = options.web3Context.defaultCommon as unknown as Common;
+			const chainId = common.customChain.chainId as string;
+			const networkId = common.customChain.networkId as string;
+			const name = common.customChain.name as string;
+			populatedTransaction.common = {
+				...common,
+				customChain: { chainId, networkId, name },
+			};
+		}
+
 		if (isNullish(populatedTransaction.chain)) {
 			populatedTransaction.chain = options.web3Context.defaultChain as ValidChains;
 		}

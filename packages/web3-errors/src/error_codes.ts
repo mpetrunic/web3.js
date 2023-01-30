@@ -26,6 +26,7 @@ export const ERR_METHOD_NOT_IMPLEMENTED = 202;
 export const ERR_OPERATION_TIMEOUT = 203;
 export const ERR_OPERATION_ABORT = 204;
 export const ERR_ABI_ENCODING = 205;
+export const ERR_EXISTING_PLUGIN_NAMESPACE = 206;
 
 // Contract error codes
 export const ERR_CONTRACT = 300;
@@ -38,6 +39,7 @@ export const ERR_CONTRACT_MISSING_DEPLOY_DATA = 306;
 export const ERR_CONTRACT_MISSING_ADDRESS = 307;
 export const ERR_CONTRACT_MISSING_FROM_ADDRESS = 308;
 export const ERR_CONTRACT_INSTANTIATION = 309;
+export const ERR_CONTRACT_EXECUTION_REVERTED = 310;
 
 // Transaction error codes
 export const ERR_TX = 400;
@@ -75,6 +77,15 @@ export const ERR_TX_LOCAL_WALLET_NOT_AVAILABLE = 429;
 
 export const ERR_TX_NOT_FOUND = 430;
 export const ERR_TX_SEND_TIMEOUT = 431;
+export const ERR_TX_BLOCK_TIMEOUT = 432;
+
+export const ERR_TX_SIGNING = 433;
+export const ERR_TX_GAS_MISMATCH = 434;
+
+export const ERR_TX_CHAIN_MISMATCH = 435;
+export const ERR_TX_HARDFORK_MISMATCH = 436;
+export const ERR_TX_INVALID_RECEIVER = 437;
+
 // Connection error codes
 export const ERR_CONN = 500;
 export const ERR_CONN_INVALID = 501;
@@ -111,7 +122,7 @@ export const GENESIS_BLOCK_NUMBER = '0x0';
 
 // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1193.md#provider-errors
 export const JSONRPC_ERR_REJECTED_REQUEST = 4001;
-export const JSONRPC_ERR_UNAUTHORIZED = 4001;
+export const JSONRPC_ERR_UNAUTHORIZED = 4100;
 export const JSONRPC_ERR_UNSUPPORTED_METHOD = 4200;
 export const JSONRPC_ERR_DISCONNECTED = 4900;
 export const JSONRPC_ERR_CHAIN_DISCONNECTED = 4901;
@@ -139,3 +150,21 @@ export const ERR_INVALID_NIBBLE_WIDTH = 1014;
 
 // Validation error codes
 export const ERR_VALIDATION = 1100;
+
+// Core error codes
+export const ERR_CORE_HARDFORK_MISMATCH = 1101;
+export const ERR_CORE_CHAIN_MISMATCH = 1102;
+
+// rpc error codes EIP-1474
+export const ERR_RPC_INVALID_JSON = -32700;
+export const ERR_RPC_INVALID_REQUEST = -32600;
+export const ERR_RPC_INVALID_METHOD = -32601;
+export const ERR_RPC_INVALID_PARAMS = -32602;
+export const ERR_RPC_INTERNAL_ERROR = -32603;
+export const ERR_RPC_INVALID_INPUT = -32000;
+export const ERR_RPC_MISSING_RESOURCE = -32001;
+export const ERR_RPC_UNAVAILABLE_RESOURCE = -32002;
+export const ERR_RPC_TRANSACTION_REJECTED = -32003;
+export const ERR_RPC_UNSUPPORTED_METHOD = -32004;
+export const ERR_RPC_LIMIT_EXCEEDED = -32005;
+export const ERR_RPC_NOT_SUPPORTED = -32006;

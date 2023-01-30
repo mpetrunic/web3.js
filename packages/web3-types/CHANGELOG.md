@@ -34,3 +34,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - I've improved the security in XY (#1000)
 
 -->
+
+## [0.1.1-alpha.1]
+
+### Added
+
+-   `Web3EthExecutionAPI` export (#5441)
+-   `Web3NetAPI` export (#5441)
+-   `EthPersonalAPI` export (#5441)
+
+### Changed
+
+-   `Web3APISpec`, `Web3APIMethod`, and `Web3APIParams` now supports `unknown` APIs (#5393)
+
+## [0.1.1-alpha.2]
+
+### Added
+
+-   These types were moved from `web3-eth-accounts` to `web3-types` package: Cipher, CipherOptions, ScryptParams, PBKDF2SHA256Params, KeyStore (#5581 )
+
+### Fixed
+
+-   Make the `request` method of `EIP1193Provider` class, compatible with EIP 1193 (#5591)
+
+## [0.1.1-alpha.3]
+
+### Changed
+
+-   `tsc` compiled files moved to `lib/` directory from `dist/` (#5739)
+-   These types were added: ProviderRpcError, EthSubscription, ProviderMessage, ProviderConnectInfo (#5683)
+
+## [0.1.1-alpha.4]
+
+### Added
+
+-   Add `TransactionWithFromLocalWalletIndex`, `TransactionWithToLocalWalletIndex` and `TransactionWithFromAndToLocalWalletIndex` types (#5731)
+
+## [Unreleased]

@@ -16,30 +16,104 @@ along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Contract } from '../../src';
 import { sleep } from '../shared_fixtures/utils';
+import { ERC721TokenAbi, ERC721TokenBytecode } from '../shared_fixtures/build/ERC721Token';
 import { GreeterBytecode, GreeterAbi } from '../shared_fixtures/build/Greeter';
 import { DeployRevertAbi, DeployRevertBytecode } from '../shared_fixtures/build/DeployRevert';
-import { getSystemTestProvider, getSystemTestAccounts, isWs } from '../fixtures/system_test_utils';
+import {
+	getSystemTestProvider,
+	isWs,
+	createTempAccount,
+	createNewAccount,
+	signTxAndSendEIP2930,
+	signTxAndSendEIP1559,
+} from '../fixtures/system_test_utils';
 
 describe('contract', () => {
 	describe('deploy', () => {
 		let contract: Contract<typeof GreeterAbi>;
 		let deployOptions: Record<string, unknown>;
 		let sendOptions: Record<string, unknown>;
-		let accounts: string[];
-
-		beforeEach(async () => {
-			contract = new Contract(GreeterAbi, undefined, {
-				provider: getSystemTestProvider(),
-			});
-
-			accounts = await getSystemTestAccounts();
-
+		let acc: { address: string; privateKey: string };
+		let pkAccount: { address: string; privateKey: string };
+		beforeAll(async () => {
+			pkAccount = await createNewAccount({ refill: true });
+			acc = await createTempAccount();
 			deployOptions = {
 				data: GreeterBytecode,
 				arguments: ['My Greeting'],
 			};
+		});
+		beforeEach(() => {
+			contract = new Contract(GreeterAbi, undefined, {
+				provider: getSystemTestProvider(),
+			});
+			sendOptions = { from: acc.address, gas: '1000000' };
+		});
+		describe('local account', () => {
+			it.each([signTxAndSendEIP1559, signTxAndSendEIP2930])(
+				'should deploy the contract %p',
+				async signTxAndSend => {
+					const deployData = contract.deploy(deployOptions);
 
-			sendOptions = { from: accounts[0], gas: '1000000' };
+					const res = await signTxAndSend(
+						contract.provider,
+						{
+							data: deployData.encodeABI(),
+						},
+						pkAccount.privateKey,
+					);
+					expect(Number(res.status)).toBe(1);
+				},
+			);
+
+			it('should return estimated gas of contract constructor %p', async () => {
+				const estimatedGas = await new Contract(GreeterAbi, undefined, {
+					provider: getSystemTestProvider(),
+				})
+					.deploy({
+						data: GreeterBytecode,
+						arguments: ['My Greeting'],
+					})
+					.estimateGas({
+						from: acc.address,
+						gas: '1000000',
+					});
+				expect(Number(estimatedGas)).toBeGreaterThan(0);
+			});
+			it('should return estimated gas of contract constructor without arguments', async () => {
+				const estimatedGas = await new Contract(ERC721TokenAbi, undefined, {
+					provider: getSystemTestProvider(),
+				})
+					.deploy({
+						data: ERC721TokenBytecode,
+						arguments: [],
+					})
+					.estimateGas({
+						from: acc.address,
+						gas: '10000000',
+					});
+				expect(Number(estimatedGas)).toBeGreaterThan(0);
+			});
+			it('should return estimated gas of contract method', async () => {
+				const contractDeployed = await contract.deploy(deployOptions).send(sendOptions);
+
+				const estimatedGas = await contractDeployed.methods
+					.setGreeting('Hello')
+					.estimateGas({
+						gas: '1000000',
+						from: acc.address,
+					});
+				expect(Number(estimatedGas)).toBeGreaterThan(0);
+			});
+			it('should return estimated gas of contract method without arguments', async () => {
+				const contractDeployed = await contract.deploy(deployOptions).send(sendOptions);
+
+				const estimatedGas = await contractDeployed.methods.increment().estimateGas({
+					gas: '1000000',
+					from: acc.address,
+				});
+				expect(Number(estimatedGas)).toBeGreaterThan(0);
+			});
 		});
 
 		it('should deploy the contract', async () => {
@@ -52,7 +126,7 @@ describe('contract', () => {
 			contract = new Contract(GreeterAbi, {
 				provider: getSystemTestProvider(),
 				data: GreeterBytecode,
-				from: accounts[0],
+				from: acc.address,
 				gas: '1000000',
 			});
 			const deployedContract = await contract.deploy({ arguments: ['Hello World'] }).send();

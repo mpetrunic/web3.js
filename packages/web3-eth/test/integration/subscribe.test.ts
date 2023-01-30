@@ -17,36 +17,35 @@ along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 import WebSocketProvider from 'web3-providers-ws';
 import { Web3BaseProvider } from 'web3-types';
 /* eslint-disable import/no-named-as-default */
-import Web3Eth from '../../src/index';
-import {
+// eslint-disable-next-line import/no-extraneous-dependencies
+import IpcProvider from 'web3-providers-ipc';
+import Web3Eth, {
 	NewHeadsSubscription,
 	SyncingSubscription,
 	NewPendingTransactionsSubscription,
 	LogsSubscription,
-} from '../../src/web3_subscriptions';
+} from '../../src/index';
 import {
 	getSystemTestProvider,
 	describeIf,
-	getSystemTestAccounts,
+	isSocket,
 	isWs,
+	createTempAccount,
+	closeOpenConnection,
 } from '../fixtures/system_test_utils';
 
-describeIf(isWs)('subscribe', () => {
+describeIf(isSocket)('subscribe', () => {
 	let web3Eth: Web3Eth;
-	let provider: WebSocketProvider;
-	let accounts: string[];
+	let provider: WebSocketProvider | IpcProvider;
 
-	beforeAll(async () => {
-		accounts = await getSystemTestAccounts();
-		provider = new WebSocketProvider(
-			getSystemTestProvider(),
-			{},
-			{ delay: 1, autoReconnect: false, maxAttempts: 1 },
-		);
+	beforeAll(() => {
+		provider = isWs
+			? new WebSocketProvider(getSystemTestProvider())
+			: new IpcProvider(getSystemTestProvider());
 	});
 
-	afterAll(() => {
-		provider.disconnect();
+	afterAll(async () => {
+		await closeOpenConnection(web3Eth);
 	});
 
 	afterEach(async () => {
@@ -76,9 +75,10 @@ describeIf(isWs)('subscribe', () => {
 			expect(inst).toBeInstanceOf(NewPendingTransactionsSubscription);
 		});
 		it('logs', async () => {
+			const tempAcc = await createTempAccount();
 			web3Eth = new Web3Eth(provider as Web3BaseProvider);
 			await web3Eth.subscribe('logs', {
-				address: accounts[0],
+				address: tempAcc.address,
 			});
 			const subs = web3Eth?.subscriptionManager?.subscriptions;
 			const inst = subs?.get(Array.from(subs.keys())[0]);

@@ -15,8 +15,9 @@ You should have received a copy of the GNU Lesser General Public License
 along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import { Numbers, HexString, BlockNumberOrTag } from 'web3-types';
-import { toHex } from 'web3-utils';
+import { Numbers, HexString, BlockNumberOrTag, Common } from 'web3-types';
+import { ConfigHardforkMismatchError, ConfigChainMismatchError } from 'web3-errors';
+import { isNullish, toHex } from 'web3-utils';
 import { TransactionTypeParser } from './types';
 // eslint-disable-next-line import/no-cycle
 import { TransactionBuilder } from './web3_context';
@@ -39,9 +40,15 @@ export interface Web3ConfigOptions {
 	defaultNetworkId?: Numbers;
 	defaultChain: string;
 	defaultHardfork: string;
-	defaultCommon?: Record<string, unknown>;
+
+	defaultCommon?: Common;
 	defaultTransactionType: Numbers;
 	defaultMaxPriorityFeePerGas: Numbers;
+	enableExperimentalFeatures: {
+		useSubscriptionWhenCheckingBlockTimeout: boolean;
+		useRpcCallSpecification: boolean; // EIP-1474 https://eips.ethereum.org/EIPS/eip-1474
+		// other experimental features...
+	};
 	transactionBuilder?: TransactionBuilder;
 	transactionTypeParser?: TransactionTypeParser;
 }
@@ -78,6 +85,10 @@ export abstract class Web3Config
 		defaultCommon: undefined,
 		defaultTransactionType: '0x0',
 		defaultMaxPriorityFeePerGas: toHex(2500000000),
+		enableExperimentalFeatures: {
+			useSubscriptionWhenCheckingBlockTimeout: false,
+			useRpcCallSpecification: false,
+		},
 		transactionBuilder: undefined,
 		transactionTypeParser: undefined,
 	};
@@ -104,6 +115,8 @@ export abstract class Web3Config
 	 * - myContract.methods.myMethod().call()
 	 * - myContract.methods.myMethod().send()
 	 * Default is `false`.
+	 *
+	 * `Note`: At the moment `handleRevert` is only supported for `sendTransaction` and not for `sendSignedTransaction`
 	 */
 	public get handleRevert() {
 		return this._config.handleRevert;
@@ -327,13 +340,30 @@ export abstract class Web3Config
 		this._config.blockHeaderTimeout = val;
 	}
 
+	/**
+	 * The enableExperimentalFeatures is used to enable trying new experimental features that are still not fully implemented or not fully tested or still have some related issues.
+	 * Default is `false` for every feature.
+	 */
+	public get enableExperimentalFeatures() {
+		return this._config.enableExperimentalFeatures;
+	}
+
+	/**
+	 * Will set the enableExperimentalFeatures
+	 */
+	public set enableExperimentalFeatures(val) {
+		this._triggerConfigChange('enableExperimentalFeatures', val);
+
+		this._config.enableExperimentalFeatures = val;
+	}
+
 	public get maxListenersWarningThreshold() {
 		return this._config.maxListenersWarningThreshold;
 	}
 
 	public set maxListenersWarningThreshold(val) {
 		this._triggerConfigChange('maxListenersWarningThreshold', val);
-
+		this.setMaxListenerWarningThreshold(val);
 		this._config.maxListenersWarningThreshold = val;
 	}
 
@@ -352,6 +382,13 @@ export abstract class Web3Config
 	}
 
 	public set defaultChain(val) {
+		if (
+			!isNullish(this._config.defaultCommon) &&
+			!isNullish(this._config.defaultCommon.baseChain) &&
+			val !== this._config.defaultCommon.baseChain
+		)
+			throw new ConfigChainMismatchError(this._config.defaultChain, val);
+
 		this._triggerConfigChange('defaultChain', val);
 
 		this._config.defaultChain = val;
@@ -385,6 +422,12 @@ export abstract class Web3Config
 	 *
 	 */
 	public set defaultHardfork(val) {
+		if (
+			!isNullish(this._config.defaultCommon) &&
+			!isNullish(this._config.defaultCommon.hardfork) &&
+			val !== this._config.defaultCommon.hardfork
+		)
+			throw new ConfigHardforkMismatchError(this._config.defaultCommon.hardfork, val);
 		this._triggerConfigChange('defaultHardfork', val);
 
 		this._config.defaultHardfork = val;
@@ -411,7 +454,22 @@ export abstract class Web3Config
 	 * Will set the default common property
 	 *
 	 */
-	public set defaultCommon(val) {
+	public set defaultCommon(val: Common | undefined) {
+		// validation check if default hardfork is set and matches defaultCommon hardfork
+		if (
+			!isNullish(this._config.defaultHardfork) &&
+			!isNullish(val) &&
+			!isNullish(val.hardfork) &&
+			this._config.defaultHardfork !== val.hardfork
+		)
+			throw new ConfigHardforkMismatchError(this._config.defaultHardfork, val.hardfork);
+		if (
+			!isNullish(this._config.defaultChain) &&
+			!isNullish(val) &&
+			!isNullish(val.baseChain) &&
+			this._config.defaultChain !== val.baseChain
+		)
+			throw new ConfigChainMismatchError(this._config.defaultChain, val.baseChain);
 		this._triggerConfigChange('defaultCommon', val);
 
 		this._config.defaultCommon = val;

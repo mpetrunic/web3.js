@@ -13,6 +13,10 @@ Object {
     "defaultMaxPriorityFeePerGas": "0x9502f900",
     "defaultNetworkId": undefined,
     "defaultTransactionType": "0x0",
+    "enableExperimentalFeatures": Object {
+      "useRpcCallSpecification": false,
+      "useSubscriptionWhenCheckingBlockTimeout": false,
+    },
     "handleRevert": false,
     "maxListenersWarningThreshold": 100,
     "transactionBlockTimeout": 50,
@@ -49,6 +53,7 @@ Object {
       "clientUrl": "http://test/abc",
       "httpProviderOptions": undefined,
     },
+    "useRpcCallSpecification": undefined,
   },
   "subscriptionManager": Web3SubscriptionManager {
     "_subscriptions": Map {},
@@ -67,6 +72,7 @@ Object {
         "clientUrl": "http://test/abc",
         "httpProviderOptions": undefined,
       },
+      "useRpcCallSpecification": undefined,
     },
   },
   "wallet": undefined,

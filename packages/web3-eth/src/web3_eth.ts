@@ -30,15 +30,18 @@ import {
 	LogsOutput,
 	Transaction,
 	TransactionCall,
-	TransactionWithLocalWalletIndex,
+	Web3EthExecutionAPI,
+	TransactionWithFromLocalWalletIndex,
+	TransactionWithToLocalWalletIndex,
+	TransactionWithFromAndToLocalWalletIndex,
 } from 'web3-types';
 import { isSupportedProvider, Web3Context, Web3ContextInitOptions } from 'web3-core';
 import { TransactionNotFound } from 'web3-errors';
 import { toChecksumAddress, DataFormat, DEFAULT_RETURN_FORMAT } from 'web3-utils';
-import * as rpcMethods from './rpc_methods';
+import { ethRpcMethods } from 'web3-rpc-methods';
+
 import * as rpcMethodsWrappers from './rpc_method_wrappers';
 import { SendTransactionOptions } from './types';
-import { Web3EthExecutionAPI } from './web3_eth_execution_api';
 import {
 	LogsSubscription,
 	NewPendingTransactionsSubscription,
@@ -100,7 +103,7 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	 * ```
 	 */
 	public async getProtocolVersion() {
-		return rpcMethods.getProtocolVersion(this.requestManager);
+		return ethRpcMethods.getProtocolVersion(this.requestManager);
 	}
 
 	// TODO Add returnFormat parameter
@@ -121,7 +124,7 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	 * ```
 	 */
 	public async isSyncing() {
-		return rpcMethods.getSyncing(this.requestManager);
+		return ethRpcMethods.getSyncing(this.requestManager);
 	}
 
 	// TODO consider adding returnFormat parameter (to format address as bytes)
@@ -134,7 +137,7 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	 * ```
 	 */
 	public async getCoinbase() {
-		return rpcMethods.getCoinbase(this.requestManager);
+		return ethRpcMethods.getCoinbase(this.requestManager);
 	}
 
 	/**
@@ -148,7 +151,7 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	 * ```
 	 */
 	public async isMining() {
-		return rpcMethods.getMining(this.requestManager);
+		return ethRpcMethods.getMining(this.requestManager);
 	}
 
 	/**
@@ -176,10 +179,10 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	 * @returns The number of hashes per second that the node is mining with.
 	 *
 	 * ```ts
-	 * web3.eth.getHashrate().then(console.log);
+	 * web3.eth.getHashRate().then(console.log);
 	 * > 493736n
 	 *
-	 * web3.eth.getHashrate({ number: FMT_NUMBER.HEX , bytes: FMT_BYTES.HEX }).then(console.log);
+	 * web3.eth.getHashRate({ number: FMT_NUMBER.HEX , bytes: FMT_BYTES.HEX }).then(console.log);
 	 * > "0x788a8"
 	 * ```
 	 */
@@ -216,7 +219,7 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	 * ```
 	 */
 	public async getAccounts() {
-		const hexAddresses = (await rpcMethods.getAccounts(this.requestManager)) ?? [];
+		const hexAddresses = (await ethRpcMethods.getAccounts(this.requestManager)) ?? [];
 		return hexAddresses.map(address => toChecksumAddress(address));
 	}
 
@@ -821,7 +824,7 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	}
 
 	/**
-	 * @param transaction The {@link Transaction} or {@link TransactionWithLocalWalletIndex} to send.
+	 * @param transaction The {@link Transaction}, {@link TransactionWithFromLocalWalletIndex}, {@link TransactionWithToLocalWalletIndex} or {@link TransactionWithFromAndToLocalWalletIndex} to send.
 	 * @param returnFormat ({@link DataFormat} defaults to {@link DEFAULT_RETURN_FORMAT}) Specifies how the return data should be formatted.
 	 * @param options A configuration object used to change the behavior of the `sendTransaction` method.
 	 * @returns If `await`ed or `.then`d (i.e. the promise resolves), the transaction hash is returned.
@@ -927,7 +930,11 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	 * ```
 	 */
 	public sendTransaction<ReturnFormat extends DataFormat = typeof DEFAULT_RETURN_FORMAT>(
-		transaction: Transaction | TransactionWithLocalWalletIndex,
+		transaction:
+			| Transaction
+			| TransactionWithFromLocalWalletIndex
+			| TransactionWithToLocalWalletIndex
+			| TransactionWithFromAndToLocalWalletIndex,
 		returnFormat: ReturnFormat = DEFAULT_RETURN_FORMAT as ReturnFormat,
 		options?: SendTransactionOptions,
 	) {
@@ -1233,7 +1240,7 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	 * ```
 	 */
 	public async getWork() {
-		return rpcMethods.getWork(this.requestManager);
+		return ethRpcMethods.getWork(this.requestManager);
 	}
 
 	/**
@@ -1258,7 +1265,7 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 		hash: HexString32Bytes,
 		digest: HexString32Bytes,
 	) {
-		return rpcMethods.submitWork(this.requestManager, nonce, hash, digest);
+		return ethRpcMethods.submitWork(this.requestManager, nonce, hash, digest);
 	}
 
 	// TODO - Format addresses
@@ -1276,7 +1283,7 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	 * ```
 	 */
 	public async requestAccounts() {
-		return rpcMethods.requestAccounts(this.requestManager);
+		return ethRpcMethods.requestAccounts(this.requestManager);
 	}
 
 	/**
@@ -1306,7 +1313,7 @@ export class Web3Eth extends Web3Context<Web3EthExecutionAPI, RegisteredSubscrip
 	 * ```
 	 */
 	public async getNodeInfo() {
-		return rpcMethods.getNodeInfo(this.requestManager);
+		return ethRpcMethods.getNodeInfo(this.requestManager);
 	}
 
 	/**

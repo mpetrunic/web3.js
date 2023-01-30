@@ -34,3 +34,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - I've improved the security in XY (#1000)
 
 -->
+
+## [4.0.1-alpha.1]
+
+### Changed
+
+-   `signTransaction` and `privateKeyToAccount` will throw `TransactionSigningError` instead of `SignerError` now (#5462)
+
+## [4.0.1-alpha.2]
+
+### Removed
+
+-   These types were moved to `web3-types` package: Cipher, CipherOptions, ScryptParams, PBKDF2SHA256Params, KeyStore (#5581)
+
+## [4.0.1-alpha.3]
+
+### Changed
+
+-   Updated dependencies (#5725)
+
+## [4.0.1-alpha.4]
+
+### Changed
+
+-   `tsc` compiled files moved to `lib/` directory from `dist/` (#5739)
+
+## [4.0.1-alpha.5]
+
+### Changed
+
+-   web3.js dependencies (#5757)
+
+## [Unreleased]

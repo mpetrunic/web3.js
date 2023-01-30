@@ -34,3 +34,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - I've improved the security in XY (#1000)
 
 -->
+
+## [4.0.1-alpha.1]
+
+### Added
+
+-   If the response error was `execution reverted`, raise `ContractExecutionError` and pass the response error to it in order to be set as `innerError` (this innerError will be decoded at web3-eth-contract if its ABI was provided according to EIP-838). (#5434)
+-   `registerPlugin` method to `Web3Context` (#5393)
+-   `Web3PluginBase` exported abstract class (#5393)
+-   `Web3EthPluginBase` exported abstract class (#5393)
+
+### Changed
+
+-   Default value for `API` generic for `Web3ContextObject` from `any` to `unknown` (#5393)
+-   Default value for `API` generic for `Web3ContextInitOptions` from `any` to `unknown` (#5393)
+-   Added validation when `defaultHardfork` and `defaultCommon.hardfork` are different in web3config
+-   Added validation when `defaultChain` and `defaultCommon.basechain` are different in web3config
+-   Added a new configuration variable `enableExperimentalFeatures`. (#5481)
+
+## [4.0.1-alpha.2]
+
+### Fixed
+
+-   Make the `request` method of `EIP1193Provider` class, compatible with EIP 1193 (#5591)
+
+## [4.0.1-alpha.3]
+
+### Changed
+
+-   Updated dependencies (#5725)
+
+## [4.0.1-alpha.4]
+
+### Changed
+
+-   `tsc` compiled files moved to `lib/` directory from `dist/` (#5739)
+
+## [4.0.1-alpha.5]
+
+### Changed
+
+-   web3.js dependencies (#5757)
+
+## [Unreleased]
+
+### Added
+
+-   Added rpc exception codes following eip-1474 as an experimental feature (if `useRpcCallSpecification` at `enableExperimentalFeatures` is `true`) (#5525)

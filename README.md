@@ -9,7 +9,17 @@
 
 Web3.js is a TypeScript implementation of the [Ethereum JSON RPC API](https://eth.wiki/json-rpc/API) and related tooling maintained by [ChainSafe Systems](https://chainsafe.io).
 
-###### Get it from the NPM Registry:
+## Installation
+
+You can install the package either using [NPM](https://www.npmjs.com/package/web3) or using [Yarn](https://yarnpkg.com/package/web3)
+
+### Using NPM
+
+```bash
+npm install web3
+```
+
+### Using Yarn
 
 ```bash
 yarn add web3
@@ -24,6 +34,11 @@ yarn add web3
 
 -   :gear: [NodeJS](https://nodejs.org/) (LTS/Fermium)
 -   :toolbox: [Yarn](https://yarnpkg.com/)/[Lerna](https://lerna.js.org/)
+
+## Useful links
+
+-   [Web3 tree shaking support guide](https://docs.web3js.org/docs/guides/web3_tree_shaking_support_guide)
+-   [React App Example](https://github.com/ChainSafe/web3js-example-react-app)
 
 ## Architecture Overview
 

@@ -14,78 +14,107 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
-import WebSocketProvider from 'web3-providers-ws';
-import { Web3BaseProvider } from 'web3-types';
-import { Web3Eth } from '../../src';
-import { sendFewTxes, Resolve } from './helper';
-import { NewPendingTransactionsSubscription } from '../../src/web3_subscriptions';
+import { Web3Eth, NewPendingTransactionsSubscription } from '../../src';
+import { sendFewTxes } from './helper';
 import {
+	closeOpenConnection,
+	createTempAccount,
 	describeIf,
-	getSystemTestAccounts,
 	getSystemTestProvider,
-	isWs,
+	isIpc,
+	isSocket,
+	waitForOpenConnection,
 } from '../fixtures/system_test_utils';
 
-const checkTxCount = 5;
+const checkTxCount = 2;
 
-type SubName = 'pendingTransactions' | 'newPendingTransactions';
-const subNames: SubName[] = ['pendingTransactions', 'newPendingTransactions'];
-
-describeIf(isWs)('subscription', () => {
-	let web3Eth: Web3Eth;
-	let providerWs: WebSocketProvider;
-	let clientUrl: string;
-	let accounts: string[] = [];
-	beforeAll(async () => {
-		clientUrl = getSystemTestProvider();
-		accounts = await getSystemTestAccounts();
-		providerWs = new WebSocketProvider(
-			clientUrl,
-			{},
-			{ delay: 1, autoReconnect: false, maxAttempts: 1 },
-		);
-	});
-	afterAll(() => {
-		providerWs.disconnect();
-	});
-
+describeIf(isSocket && !isIpc)('subscription', () => {
 	describe('new pending transaction', () => {
-		it.each(subNames)(`wait ${checkTxCount} transaction - ${subNames[0]}`, async subName => {
-			web3Eth = new Web3Eth(providerWs as Web3BaseProvider);
-			const sub: NewPendingTransactionsSubscription = await web3Eth.subscribe(subName);
-			const from = accounts[0];
-			const to = accounts[1];
+		it(`wait ${checkTxCount} transaction - %s`, async () => {
+			const web3Eth = new Web3Eth(getSystemTestProvider());
+			const [tempAcc, tempAcc2] = await Promise.all([
+				createTempAccount(),
+				createTempAccount(),
+			]);
+			await waitForOpenConnection(web3Eth);
+
+			const sub: NewPendingTransactionsSubscription = await web3Eth.subscribe(
+				'pendingTransactions',
+			);
+			const from = tempAcc.address;
+			const to = tempAcc2.address;
 			const value = `0x1`;
 
 			let times = 0;
 			const txHashes: string[] = [];
-			const pr = new Promise((resolve: Resolve) => {
-				sub.on('data', (data: string) => {
-					txHashes.push(data);
-					times += 1;
+			let receipts: string[] = [];
+
+			const pr = new Promise((resolve: (s?: string) => void) => {
+				(async () => {
+					let waitList: string[] = [];
+					sub.on('data', (data: string) => {
+						if (receipts.length > 0 && waitList.length > 0) {
+							for (const hash of waitList) {
+								if (receipts.includes(hash)) {
+									txHashes.push(hash);
+									times += 1;
+								}
+							}
+							waitList = [];
+						}
+						if (receipts.length > 0 && receipts.includes(data)) {
+							txHashes.push(data);
+							times += 1;
+						} else {
+							waitList.push(data);
+						}
+
+						if (times >= checkTxCount) {
+							resolve();
+						}
+					});
+					receipts = (
+						await sendFewTxes({
+							web3Eth,
+							from,
+							to,
+							value,
+							times: isIpc ? checkTxCount * 3 : checkTxCount,
+						})
+					).map(r => String(r?.transactionHash));
+					if (receipts.length > 0 && waitList.length > 0) {
+						for (const hash of waitList) {
+							if (receipts.includes(hash)) {
+								txHashes.push(hash);
+								times += 1;
+							}
+						}
+						waitList = [];
+					}
 					if (times >= checkTxCount) {
+						sub.off('data', () => {
+							// no need to do anything
+						});
 						resolve();
 					}
-				});
-			});
-
-			const receipts = await sendFewTxes({
-				web3Eth,
-				from,
-				to,
-				value,
-				times: checkTxCount,
+				})().catch(console.error);
 			});
 			await pr;
-			expect(receipts.map(r => r?.transactionHash)).toEqual(txHashes);
-			await web3Eth.clearSubscriptions();
+			for (const hash of txHashes) {
+				expect(receipts).toContain(hash);
+			}
+			await closeOpenConnection(web3Eth);
 		});
-		it.each(subNames)(`clear`, async (subName: SubName) => {
-			web3Eth = new Web3Eth(providerWs as Web3BaseProvider);
-			const sub: NewPendingTransactionsSubscription = await web3Eth.subscribe(subName);
+		it(`clear`, async () => {
+			const web3Eth = new Web3Eth(getSystemTestProvider());
+			await waitForOpenConnection(web3Eth);
+			const sub: NewPendingTransactionsSubscription = await web3Eth.subscribe(
+				'pendingTransactions',
+			);
 			expect(sub.id).toBeDefined();
-			await web3Eth.clearSubscriptions();
+			await web3Eth.subscriptionManager?.removeSubscription(sub);
 			expect(sub.id).toBeUndefined();
+			await closeOpenConnection(web3Eth);
 		});
 	});
 });

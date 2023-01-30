@@ -15,7 +15,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import { Web3BaseWallet, Web3BaseWalletAccount, Web3EncryptedWallet } from 'web3-types';
+import { Web3BaseWallet, Web3BaseWalletAccount, KeyStore } from 'web3-types';
 import { isNullish } from 'web3-validator';
 import { WebStorage } from './types';
 
@@ -157,10 +157,13 @@ export class Wallet<
 		if (typeof account === 'string') {
 			return this.add(this._accountProvider.privateKeyToAccount(account));
 		}
-
-		const index = this.length;
+		let index = this.length;
+		const existAccount = this.get(account.address);
+		if (existAccount) {
+			console.warn(`Account ${account.address.toLowerCase()} already exists.`);
+			index = this._addressMap.get(account.address.toLowerCase()) ?? index;
+		}
 		this._addressMap.set(account.address.toLowerCase(), index);
-
 		this[index] = account;
 
 		return this;
@@ -169,7 +172,7 @@ export class Wallet<
 	 * Get the account of the wallet with either the index or public address.
 	 *
 	 * @param addressOrIndex - A string of the address or number index within the wallet.
-	 * @returns The account object or undefined if the account doesnt exist
+	 * @returns The account object or undefined if the account doesn't exist
 	 */
 
 	public get(addressOrIndex: string | number): T | undefined {
@@ -190,7 +193,7 @@ export class Wallet<
 	 * Removes an account from the wallet.
 	 *
 	 * @param addressOrIndex - The account address, or index in the wallet.
-	 * @returns true if the wallet was removed. false if it couldn’t be found.
+	 * @returns true if the wallet was removed. false if it couldn't be found.
 	 * ```ts
 	 * web3.eth.accounts.wallet.add('0xbce9b59981303e76c4878b1a6d7b088ec6b9dd5c966b7d5f54d7a749ff683387');
 	 *
@@ -276,8 +279,11 @@ export class Wallet<
 	 * ]
 	 * ```
 	 */
-	public async encrypt(password: string, options?: Record<string, unknown> | undefined) {
-		return Promise.all(this.map(async account => account.encrypt(password, options)));
+	public async encrypt(
+		password: string,
+		options?: Record<string, unknown> | undefined,
+	): Promise<KeyStore[]> {
+		return Promise.all(this.map(async (account: T) => account.encrypt(password, options)));
 	}
 
 	/**
@@ -355,16 +361,15 @@ export class Wallet<
 	 * ```
 	 */
 	public async decrypt(
-		encryptedWallets: string[],
+		encryptedWallets: KeyStore[],
 		password: string,
 		options?: Record<string, unknown> | undefined,
 	) {
 		const results = await Promise.all(
-			encryptedWallets.map(async wallet =>
+			encryptedWallets.map(async (wallet: KeyStore) =>
 				this._accountProvider.decrypt(wallet, password, options),
 			),
 		);
-
 		for (const res of results) {
 			this.add(res);
 		}
@@ -427,7 +432,7 @@ export class Wallet<
 		const keystore = storage.getItem(keyName ?? this._defaultKeyName);
 
 		if (keystore) {
-			await this.decrypt((JSON.parse(keystore) as Web3EncryptedWallet[]) || [], password);
+			await this.decrypt((JSON.parse(keystore) as KeyStore[]) || [], password);
 		}
 
 		return this;

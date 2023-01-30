@@ -14,10 +14,10 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 import { Socket } from 'net';
+
 import { Web3Error } from './error_types';
-import { EthExecutionAPI } from './eth_execution_api';
+import { EthExecutionAPI } from './apis/eth_execution_api';
 import {
 	JsonRpcNotification,
 	JsonRpcPayload,
@@ -27,15 +27,33 @@ import {
 	JsonRpcResult,
 	JsonRpcSubscriptionResult,
 } from './json_rpc_types';
-import { Web3APISpec, Web3APIMethod, Web3APIReturnType, Web3APIPayload } from './web3_api_types';
+import {
+	Web3APISpec,
+	Web3APIMethod,
+	Web3APIReturnType,
+	Web3APIPayload,
+	ProviderConnectInfo,
+	ProviderRpcError,
+} from './web3_api_types';
+import { Web3EthExecutionAPI } from './apis/web3_eth_execution_api';
+import { Web3DeferredPromise } from './web3_deferred_promise_type';
 
 const symbol = Symbol.for('web3/base-provider');
+
+export interface SocketRequestItem<
+	API extends Web3APISpec,
+	Method extends Web3APIMethod<API>,
+	ResponseType,
+> {
+	payload: Web3APIPayload<API, Method>;
+	deferredPromise: Web3DeferredPromise<ResponseType>;
+}
 
 // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1193.md#connectivity
 export type Web3ProviderStatus = 'connecting' | 'connected' | 'disconnected';
 
 export type Web3ProviderEventCallback<T = JsonRpcResult> = (
-	error: Error | undefined,
+	error: Error | ProviderRpcError | undefined,
 	result?: JsonRpcSubscriptionResult | JsonRpcNotification<T>,
 ) => void;
 
@@ -70,9 +88,8 @@ export interface LegacyRequestProvider {
 
 export interface EIP1193Provider<API extends Web3APISpec> {
 	request<Method extends Web3APIMethod<API>, ResponseType = Web3APIReturnType<API, Method>>(
-		request: Web3APIPayload<API, Method>,
-		requestOptions?: unknown,
-	): Promise<JsonRpcResponseWithResult<ResponseType>>;
+		args: Web3APIPayload<API, Method>,
+	): Promise<JsonRpcResponseWithResult<ResponseType> | unknown>;
 }
 
 // Provider interface compatible with EIP-1193
@@ -104,12 +121,14 @@ export abstract class Web3BaseProvider<API extends Web3APISpec = EthExecutionAPI
 	 * @param payload - Request Payload
 	 * @param callback - Callback
 	 */
-	public send<R = JsonRpcResult, P = unknown>(
+	public send<ResultType = JsonRpcResult, P = unknown>(
 		payload: JsonRpcPayload<P>,
 		// eslint-disable-next-line @typescript-eslint/ban-types
-		callback: (err?: Error | null, response?: JsonRpcResponse<R>) => void,
+		callback: (err?: Error | null, response?: JsonRpcResponse<ResultType>) => void,
 	) {
-		this.request(payload as Web3APIPayload<API, any>)
+		this.request<Web3APIMethod<API>, ResultType>(
+			payload as Web3APIPayload<API, Web3APIMethod<API>>,
+		)
 			.then(response => {
 				callback(undefined, response);
 			})
@@ -123,35 +142,35 @@ export abstract class Web3BaseProvider<API extends Web3APISpec = EthExecutionAPI
 	 * @param payload - Request Payload
 	 */
 	public async sendAsync<R = JsonRpcResult, P = unknown>(payload: JsonRpcPayload<P>) {
-		return this.request(payload as Web3APIPayload<API, any>) as Promise<JsonRpcResponse<R>>;
+		return this.request(payload as Web3APIPayload<API, Web3APIMethod<API>>) as Promise<
+			JsonRpcResponse<R>
+		>;
 	}
 
 	// https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1193.md#request
 	public abstract request<
 		Method extends Web3APIMethod<API>,
-		ResultType = Web3APIReturnType<API, Method>,
-	>(
-		request: Web3APIPayload<API, Method>,
-		requestOptions?: unknown,
-	): Promise<JsonRpcResponseWithResult<ResultType>>;
+		ResultType = Web3APIReturnType<API, Method> | unknown,
+	>(args: Web3APIPayload<API, Method>): Promise<JsonRpcResponseWithResult<ResultType>>;
 
 	// https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1193.md#events
+
+	public abstract on(
+		type: 'disconnect',
+		callback: Web3ProviderEventCallback<ProviderRpcError>,
+	): void;
 	public abstract on<T = JsonRpcResult>(
-		type: 'message' | 'disconnect' | string,
+		type: 'message' | string,
 		callback: Web3ProviderEventCallback<T>,
 	): void;
 	public abstract on(
 		type: 'connect' | 'chainChanged',
-		callback: Web3ProviderEventCallback<{
-			readonly [key: string]: unknown;
-			readonly chainId: string;
-		}>,
+		callback: Web3ProviderEventCallback<ProviderConnectInfo>,
 	): void;
 	public abstract on(
 		type: 'accountsChanged',
 		callback: Web3ProviderEventCallback<{
-			readonly [key: string]: unknown;
-			readonly accountsChanged: string[];
+			readonly accounts: string[];
 		}>,
 	): void;
 	public abstract removeListener(type: string, callback: Web3ProviderEventCallback): void;
@@ -162,13 +181,13 @@ export abstract class Web3BaseProvider<API extends Web3APISpec = EthExecutionAPI
 	): void;
 	public abstract removeAllListeners?(type: string): void;
 	public abstract connect(): void;
-	public abstract disconnect(code?: number, reason?: string): void;
+	public abstract disconnect(code?: number, data?: string): void;
 	public abstract reset(): void;
 }
 
-export type SupportedProviders<API extends Web3APISpec> =
-	| Web3BaseProvider<API>
+export type SupportedProviders<API extends Web3APISpec = Web3EthExecutionAPI> =
 	| EIP1193Provider<API>
+	| Web3BaseProvider<API>
 	| LegacyRequestProvider
 	| LegacySendProvider
 	| LegacySendAsyncProvider;

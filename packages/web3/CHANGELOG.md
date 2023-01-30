@@ -52,3 +52,17 @@ But this internal behavior is not exposed any further. Though you can achieve sa
 ```ts
 web3.currentProvider.disconnect();
 ```
+
+## [4.0.1-alpha.2]
+
+### Changed
+
+-   `tsc` compiled files moved to `lib/` directory from `dist/` (#5739)
+
+## [4.0.1-alpha.5]
+
+### Removed
+
+-   `build` entry from `package.json` (#5755)
+
+## [Unreleased]

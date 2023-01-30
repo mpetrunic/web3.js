@@ -1,19 +1,23 @@
 {
 	"name": "web3-net",
-	"version": "4.0.0-alpha.0",
+	"version": "4.0.1-alpha.5",
 	"description": "Web3 module to interact with the Ethereum nodes networking properties.",
-	"main": "dist/index.js",
+	"main": "lib/index.js",
 	"repository": "https://github.com/ChainSafe/web3.js",
 	"author": "ChainSafe Systems",
 	"license": "LGPL-3.0",
+	"engines": {
+		"node": ">=14",
+		"npm": ">=6.12.0"
+	},
 	"files": [
-		"dist/**/*"
+		"lib/**/*"
 	],
 	"scripts": {
-		"clean": "rimraf dist",
-		"prebuild": "rimraf dist",
+		"clean": "rimraf dist && rimraf lib",
+		"prebuild": "yarn clean",
 		"build": "tsc --build",
-		"build:check": "node -e \"require('./dist')\"",
+		"build:check": "node -e \"require('./lib')\"",
 		"lint": "eslint --ext .js,.ts .",
 		"lint:fix": "eslint --fix --ext .js,.ts .",
 		"format": "prettier --write '**/*'",
@@ -22,7 +26,7 @@
 		"test:ci": "jest --coverage=true --coverage-reporters=json --verbose",
 		"test:watch": "npm test -- --watch",
 		"test:unit": "jest --config=./test/unit/jest.config.js",
-		"test:integration": "jest --config=./test/integration/jest.config.js --runInBand --passWithNoTests"
+		"test:integration": "jest --config=./test/integration/jest.config.js --passWithNoTests"
 	},
 	"devDependencies": {
 		"@types/jest": "^28.1.6",
@@ -39,8 +43,9 @@
 		"typescript": "^4.7.4"
 	},
 	"dependencies": {
-		"web3-core": "^4.0.0-alpha.0",
-		"web3-types": "^0.1.0-alpha.0",
-		"web3-utils": "^4.0.0-alpha.1"
+		"web3-core": "^4.0.1-alpha.5",
+		"web3-rpc-methods": "^0.1.0-alpha.4",
+		"web3-types": "^0.1.1-alpha.4",
+		"web3-utils": "^4.0.1-alpha.5"
 	}
 }

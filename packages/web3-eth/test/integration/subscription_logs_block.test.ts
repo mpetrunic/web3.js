@@ -21,15 +21,19 @@ import { Contract, decodeEventABI } from 'web3-eth-contract';
 import { AbiEventFragment } from 'web3-eth-abi';
 import { Web3BaseProvider } from 'web3-types';
 import { numberToHex } from 'web3-utils';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import IpcProvider from 'web3-providers-ipc';
 import { Web3Eth } from '../../src';
 import { BasicAbi, BasicBytecode } from '../shared_fixtures/build/Basic';
 import { eventAbi, Resolve } from './helper';
 import { LogsSubscription } from '../../src/web3_subscriptions';
 import {
+	createTempAccount,
 	describeIf,
-	getSystemTestAccounts,
 	getSystemTestProvider,
 	isWs,
+	isSocket,
+	closeOpenConnection,
 } from '../fixtures/system_test_utils';
 
 const checkEventCount = 2;
@@ -50,52 +54,45 @@ const makeFewTxToContract = async ({
 		prs.push(await contract.methods?.firesStringEvent(testDataString).send(sendOptions));
 	}
 };
-describeIf(isWs)('subscription', () => {
+describeIf(isSocket)('subscription', () => {
 	let clientUrl: string;
-	let accounts: string[] = [];
-	let web3Eth: Web3Eth;
-	let providerWs: WebSocketProvider;
+	let providerWs: WebSocketProvider | IpcProvider;
 	let contract: Contract<typeof BasicAbi>;
-	let deployOptions: Record<string, unknown>;
-	let sendOptions: Record<string, unknown>;
-	let from: string;
 	const testDataString = 'someTestString';
-	beforeAll(async () => {
+
+	beforeAll(() => {
 		clientUrl = getSystemTestProvider();
-		accounts = await getSystemTestAccounts();
-		[, from] = accounts;
-		providerWs = new WebSocketProvider(
-			clientUrl,
-			{},
-			{ delay: 1, autoReconnect: false, maxAttempts: 1 },
-		);
+		providerWs = isWs ? new WebSocketProvider(clientUrl) : new IpcProvider(clientUrl);
 		contract = new Contract(BasicAbi, undefined, {
 			provider: clientUrl,
 		});
-
-		deployOptions = {
-			data: BasicBytecode,
-			arguments: [10, 'string init value'],
-		};
-
-		sendOptions = { from, gas: '1000000' };
-
-		contract = await contract.deploy(deployOptions).send(sendOptions);
 	});
-	afterAll(() => {
+	afterAll(async () => {
 		providerWs.disconnect();
+		await closeOpenConnection(contract);
 	});
 
 	describe('logs', () => {
 		it(`wait for ${checkEventCount} logs with from block`, async () => {
-			web3Eth = new Web3Eth(providerWs as Web3BaseProvider);
-			const fromBlock = await web3Eth.getTransactionCount(String(contract.options.address));
+			const tempAcc = await createTempAccount();
+			const from = tempAcc.address;
+			const deployOptions: Record<string, unknown> = {
+				data: BasicBytecode,
+				arguments: [10, 'string init value'],
+			};
 
-			await makeFewTxToContract({ contract, sendOptions, testDataString });
+			const sendOptions = { from, gas: '1000000' };
+			const contractDeployed = await contract.deploy(deployOptions).send(sendOptions);
+			const web3Eth = new Web3Eth(providerWs as Web3BaseProvider);
+			const fromBlock = await web3Eth.getTransactionCount(
+				String(contractDeployed.options.address),
+			);
+
+			await makeFewTxToContract({ contract: contractDeployed, sendOptions, testDataString });
 
 			const sub: LogsSubscription = await web3Eth.subscribe('logs', {
 				fromBlock: numberToHex(fromBlock),
-				address: contract.options.address,
+				address: contractDeployed.options.address,
 			});
 
 			let count = 0;

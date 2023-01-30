@@ -17,7 +17,6 @@ along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 
 import { JsonRpcOptionalRequest, Web3BaseProvider, SupportedProviders } from 'web3-types';
 import Contract from 'web3-eth-contract';
-import { Web3EthExecutionAPI } from 'web3-eth/dist/web3_eth_execution_api';
 import HttpProvider from 'web3-providers-http';
 import IpcProvider from 'web3-providers-ipc';
 import WebsocketProvider from 'web3-providers-ws';
@@ -25,9 +24,9 @@ import Web3 from '../../src/index';
 import { BasicAbi } from '../shared_fixtures/Basic';
 import { validEncodeParametersData } from '../shared_fixtures/data';
 import {
+	createTempAccount,
 	closeOpenConnection,
 	describeIf,
-	getSystemTestAccounts,
 	getSystemTestProvider,
 	isHttp,
 	isIpc,
@@ -43,7 +42,9 @@ describe('Web3 instance', () => {
 
 	beforeAll(async () => {
 		clientUrl = getSystemTestProvider();
-		accounts = await getSystemTestAccounts();
+		const acc1 = await createTempAccount();
+		const acc2 = await createTempAccount();
+		accounts = [acc1.address, acc2.address];
 	});
 	afterAll(async () => {
 		await closeOpenConnection(web3);
@@ -136,7 +137,7 @@ describe('Web3 instance', () => {
 				newProvider = new Web3.providers.IpcProvider(clientUrl);
 			}
 			// eslint-disable-next-line @typescript-eslint/no-unsafe-call
-			web3.setProvider(newProvider as SupportedProviders<Web3EthExecutionAPI>);
+			web3.setProvider(newProvider as SupportedProviders);
 
 			expect(web3.provider).toBe(newProvider);
 		});

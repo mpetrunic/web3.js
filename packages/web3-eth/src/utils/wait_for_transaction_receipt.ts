@@ -14,13 +14,16 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { EthExecutionAPI, Bytes, TransactionReceipt } from 'web3-types';
+
 import { Web3Context } from 'web3-core';
-import { DataFormat, isNullish, waitWithTimeout } from 'web3-utils';
+import { TransactionPollingTimeoutError } from 'web3-errors';
+import { EthExecutionAPI, Bytes, TransactionReceipt } from 'web3-types';
+import { DataFormat, rejectIfTimeout, pollTillDefined } from 'web3-utils';
 
 // eslint-disable-next-line import/no-cycle
+import { rejectIfBlockTimeout } from './reject_if_block_timeout';
+// eslint-disable-next-line import/no-cycle
 import { getTransactionReceipt } from '../rpc_method_wrappers';
-import { TransactionPollingTimeoutError } from '../errors';
 
 export async function waitForTransactionReceipt<ReturnFormat extends DataFormat>(
 	web3Context: Web3Context<EthExecutionAPI>,
@@ -30,51 +33,37 @@ export async function waitForTransactionReceipt<ReturnFormat extends DataFormat>
 	const pollingInterval =
 		web3Context.transactionReceiptPollingInterval ?? web3Context.transactionPollingInterval;
 
-	const awaitableTransactionReceipt: Promise<TransactionReceipt | undefined> = waitWithTimeout(
-		getTransactionReceipt(web3Context, transactionHash, returnFormat),
-		pollingInterval,
+	const awaitableTransactionReceipt: Promise<TransactionReceipt> = pollTillDefined(async () => {
+		try {
+			return getTransactionReceipt(web3Context, transactionHash, returnFormat);
+		} catch (error) {
+			console.warn('An error happen while trying to get the transaction receipt', error);
+			return undefined;
+		}
+	}, pollingInterval);
+
+	const [timeoutId, rejectOnTimeout]: [NodeJS.Timer, Promise<never>] = rejectIfTimeout(
+		web3Context.transactionPollingTimeout,
+		new TransactionPollingTimeoutError({
+			numberOfSeconds: web3Context.transactionPollingTimeout / 1000,
+			transactionHash,
+		}),
 	);
 
-	let intervalId: NodeJS.Timer | undefined;
-	const polledTransactionReceipt = new Promise<TransactionReceipt>((resolve, reject) => {
-		let transactionPollingDuration = 0;
-		intervalId = setInterval(() => {
-			(async () => {
-				transactionPollingDuration += pollingInterval;
+	const [rejectOnBlockTimeout, blockTimeoutResourceCleaner] = await rejectIfBlockTimeout(
+		web3Context,
+		transactionHash,
+	);
 
-				if (transactionPollingDuration >= web3Context.transactionPollingTimeout) {
-					clearInterval(intervalId);
-					reject(
-						new TransactionPollingTimeoutError({
-							numberOfSeconds: web3Context.transactionPollingTimeout / 1000,
-							transactionHash,
-						}),
-					);
-					return;
-				}
-
-				const transactionReceipt: TransactionReceipt | undefined = await waitWithTimeout(
-					getTransactionReceipt(web3Context, transactionHash, returnFormat),
-					pollingInterval,
-				);
-
-				if (!isNullish(transactionReceipt)) {
-					clearInterval(intervalId);
-					resolve(transactionReceipt);
-				}
-			})() as unknown;
-		}, pollingInterval);
-	});
-
-	// If the first call to ´getTransactionReceipt´ got the Transaction Receipt, return it
-	const transactionReceipt = await awaitableTransactionReceipt;
-	if (!isNullish(transactionReceipt)) {
-		if (intervalId) {
-			clearInterval(intervalId);
-		}
-		return transactionReceipt;
+	try {
+		// If an error happened here, do not catch it, just clear the resources before raising it to the caller function.
+		return await Promise.race([
+			awaitableTransactionReceipt,
+			rejectOnTimeout, // this will throw an error on Transaction Polling Timeout
+			rejectOnBlockTimeout, // this will throw an error on Transaction Block Timeout
+		]);
+	} finally {
+		clearTimeout(timeoutId);
+		blockTimeoutResourceCleaner.clean();
 	}
-
-	// Otherwise, try getting the Transaction Receipt by polling
-	return polledTransactionReceipt;
 }

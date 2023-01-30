@@ -31,7 +31,7 @@ import { initAccountsForContext } from './accounts';
 import { Web3EthInterface } from './types';
 import { Web3PkgInfo } from './version';
 
-export default class Web3 extends Web3Context<EthExecutionAPI> {
+export class Web3 extends Web3Context<EthExecutionAPI> {
 	public static version = Web3PkgInfo.version;
 	public static utils = utils;
 	public static modules = {
@@ -48,6 +48,12 @@ export default class Web3 extends Web3Context<EthExecutionAPI> {
 
 	public constructor(provider?: SupportedProviders<EthExecutionAPI> | string) {
 		super({ provider });
+
+		if (isNullish(provider) || (typeof provider === 'string' && provider.trim() === '')) {
+			console.warn(
+				'NOTE: web3.js is running without provider. You need to pass a provider in order to interact with the network!',
+			);
+		}
 
 		const accounts = initAccountsForContext(this);
 
@@ -122,3 +128,4 @@ export default class Web3 extends Web3Context<EthExecutionAPI> {
 		});
 	}
 }
+export default Web3;

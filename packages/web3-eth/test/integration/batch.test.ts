@@ -14,53 +14,46 @@ GNU Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public License
 along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
-import WebSocketProvider from 'web3-providers-ws';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { hexToNumber } from 'web3-utils';
 import { Web3Eth } from '../../src';
 
-import { createNewAccount, getSystemTestProvider, isWs } from '../fixtures/system_test_utils';
+import {
+	closeOpenConnection,
+	createTempAccount,
+	getSystemTestProvider,
+	waitForOpenConnection,
+} from '../fixtures/system_test_utils';
 
 describe('eth', () => {
 	let web3Eth: Web3Eth;
-	let accounts: string[] = [];
+
 	let clientUrl: string;
 
 	beforeAll(async () => {
 		clientUrl = getSystemTestProvider();
-		const acc1 = await createNewAccount({ unlock: true, refill: true });
-		const acc2 = await createNewAccount({ unlock: true, refill: true });
-		accounts = [acc1.address, acc2.address];
-		if (isWs) {
-			web3Eth = new Web3Eth(
-				new WebSocketProvider(
-					clientUrl,
-					{},
-					{ delay: 1, autoReconnect: false, maxAttempts: 1 },
-				),
-			);
-		} else {
-			web3Eth = new Web3Eth(clientUrl);
-		}
+		web3Eth = new Web3Eth(clientUrl);
+		await waitForOpenConnection(web3Eth);
 	});
-	afterAll(() => {
-		if (isWs && web3Eth?.provider) {
-			(web3Eth.provider as WebSocketProvider).disconnect();
-		}
+	afterAll(async () => {
+		await closeOpenConnection(web3Eth);
 	});
 
 	describe('methods', () => {
 		it('BatchRequest', async () => {
+			const acc1 = await createTempAccount();
+			const acc2 = await createTempAccount();
+
 			const batch = new web3Eth.BatchRequest();
 			const request1 = {
 				id: 10,
 				method: 'eth_getBalance',
-				params: [accounts[0], 'latest'],
+				params: [acc1.address, 'latest'],
 			};
 			const request2 = {
 				id: 11,
 				method: 'eth_getBalance',
-				params: [accounts[1], 'latest'],
+				params: [acc2.address, 'latest'],
 			};
 			const r1 = batch.add(request1).catch(console.error);
 			const r2 = batch.add(request2).catch(console.error);

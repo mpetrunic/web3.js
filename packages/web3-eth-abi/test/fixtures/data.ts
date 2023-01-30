@@ -17,6 +17,15 @@ along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 
 import { encodeParameters, decodeParameters } from '../../src/api/parameters_api';
 
+// Because Jest does not support BigInt (https://github.com/facebook/jest/issues/12827)
+// The BigInt values in this file is in a string format.
+// And the following override is to convert BigInt to a string inside the Unit Tests that uses this file,
+// 	i.e when serialization is needed there (because the values in this file is in a string format).
+(BigInt.prototype as any).toJSON = function () {
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+	return this.toString();
+};
+
 export const jsonInterfaceValidData: [any, string][] = [
 	[
 		{
@@ -390,6 +399,81 @@ export const validDecodeLogsData: {
 			value: '100000',
 		},
 	},
+	{
+		input: {
+			abi: [
+				{ indexed: true, internalType: 'address', name: 'addr', type: 'address' },
+				{
+					components: [
+						{ internalType: 'string', name: 'name', type: 'string' },
+						{ internalType: 'address', name: 'addr', type: 'address' },
+						{
+							components: [
+								{ internalType: 'string', name: 'email', type: 'string' },
+								{ internalType: 'string', name: 'phone', type: 'string' },
+							],
+							internalType: 'struct ABIV2UserDirectory.Contact',
+							name: 'contact',
+							type: 'tuple',
+						},
+					],
+					indexed: false,
+					internalType: 'struct ABIV2UserDirectory.User',
+					name: 'user',
+					type: 'tuple',
+				},
+			],
+			data: '0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000060000000000000000000000000cb00cde33a7a0fba30c63745534f1f7ae607076b00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000c5269636b2053616e6368657a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000157269636b2e63313337406369746164656c2e636663000000000000000000000000000000000000000000000000000000000000000000000000000000000000112b31202835353529203331342d31353933000000000000000000000000000000',
+			topics: ['0x000000000000000000000000cb00cde33a7a0fba30c63745534f1f7ae607076b'],
+		},
+		output: {
+			'0': '0xCB00CDE33a7a0Fba30C63745534F1f7Ae607076b',
+			'1': {
+				'0': 'Rick Sanchez',
+				'1': '0xCB00CDE33a7a0Fba30C63745534F1f7Ae607076b',
+				'2': {
+					'0': 'rick.c137@citadel.cfc',
+					'1': '+1 (555) 314-1593',
+					__length__: 2,
+					email: 'rick.c137@citadel.cfc',
+					phone: '+1 (555) 314-1593',
+				},
+				__length__: 3,
+				name: 'Rick Sanchez',
+				addr: '0xCB00CDE33a7a0Fba30C63745534F1f7Ae607076b',
+				contact: {
+					'0': 'rick.c137@citadel.cfc',
+					'1': '+1 (555) 314-1593',
+					__length__: 2,
+					email: 'rick.c137@citadel.cfc',
+					phone: '+1 (555) 314-1593',
+				},
+			},
+			__length__: 2,
+			addr: '0xCB00CDE33a7a0Fba30C63745534F1f7Ae607076b',
+			user: {
+				'0': 'Rick Sanchez',
+				'1': '0xCB00CDE33a7a0Fba30C63745534F1f7Ae607076b',
+				'2': {
+					'0': 'rick.c137@citadel.cfc',
+					'1': '+1 (555) 314-1593',
+					__length__: 2,
+					email: 'rick.c137@citadel.cfc',
+					phone: '+1 (555) 314-1593',
+				},
+				__length__: 3,
+				name: 'Rick Sanchez',
+				addr: '0xCB00CDE33a7a0Fba30C63745534F1f7Ae607076b',
+				contact: {
+					'0': 'rick.c137@citadel.cfc',
+					'1': '+1 (555) 314-1593',
+					__length__: 2,
+					email: 'rick.c137@citadel.cfc',
+					phone: '+1 (555) 314-1593',
+				},
+			},
+		},
+	},
 ];
 
 export const validEncodeDecodeParametersData: {
@@ -459,6 +543,7 @@ export const validEncodeDecodeParametersData: {
 					'1': '78',
 					propertyOne: '45',
 					propertyTwo: '78',
+					__length__: 2,
 				},
 				propertyOne: '42',
 				propertyTwo: '56',
@@ -467,7 +552,30 @@ export const validEncodeDecodeParametersData: {
 					'1': '78',
 					propertyOne: '45',
 					propertyTwo: '78',
+					__length__: 2,
 				},
+				__length__: 3,
+			},
+			ParentStruct: {
+				'0': '42',
+				'1': '56',
+				'2': {
+					'0': '45',
+					'1': '78',
+					propertyOne: '45',
+					propertyTwo: '78',
+					__length__: 2,
+				},
+				propertyOne: '42',
+				propertyTwo: '56',
+				ChildStruct: {
+					'0': '45',
+					'1': '78',
+					propertyOne: '45',
+					propertyTwo: '78',
+					__length__: 2,
+				},
+				__length__: 3,
 			},
 			__length__: 2,
 		},
@@ -604,7 +712,6 @@ export const inValidEncodeParametersData: {
 
 export const validDecodeParametersData: {
 	input: Parameters<typeof decodeParameters>;
-	output: unknown[];
 	outputResult: any;
 }[] = [
 	{
@@ -612,7 +719,6 @@ export const validDecodeParametersData: {
 			['uint256', 'string'],
 			'0x000000000000000000000000000000000000000000000000000000008bd02b7b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000748656c6c6f212500000000000000000000000000000000000000000000000000',
 		],
-		output: ['2345675643', 'Hello!%'],
 		outputResult: {
 			'0': '2345675643',
 			'1': 'Hello!%',
@@ -623,10 +729,6 @@ export const validDecodeParametersData: {
 		input: [
 			['uint8[]', 'bytes32'],
 			'0x0000000000000000000000000000000000000000000000000000000000000040324567fff00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000002200000000000000000000000000000000000000000000000000000000000000ff',
-		],
-		output: [
-			['34', '255'],
-			'0x324567fff0000000000000000000000000000000000000000000000000000000',
 		],
 		outputResult: {
 			'0': ['34', '255'],
@@ -651,17 +753,6 @@ export const validDecodeParametersData: {
 			],
 			'0x00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000002a0000000000000000000000000000000000000000000000000000000000000038000000000000000000000000000000000000000000000000000000000000002d000000000000000000000000000000000000000000000000000000000000004e0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000002200000000000000000000000000000000000000000000000000000000000000ff',
 		],
-		output: [
-			['34', '255'],
-			{
-				propertyOne: '42',
-				propertyTwo: '56',
-				ChildStruct: {
-					propertyOne: '45',
-					propertyTwo: '78',
-				},
-			},
-		],
 		outputResult: {
 			'0': ['34', '255'],
 			'1': {
@@ -672,6 +763,7 @@ export const validDecodeParametersData: {
 					'1': '78',
 					propertyOne: '45',
 					propertyTwo: '78',
+					__length__: 2,
 				},
 				propertyOne: '42',
 				propertyTwo: '56',
@@ -680,9 +772,103 @@ export const validDecodeParametersData: {
 					'1': '78',
 					propertyOne: '45',
 					propertyTwo: '78',
+					__length__: 2,
 				},
+				__length__: 3,
+			},
+			ParentStruct: {
+				'0': '42',
+				'1': '56',
+				'2': {
+					'0': '45',
+					'1': '78',
+					propertyOne: '45',
+					propertyTwo: '78',
+					__length__: 2,
+				},
+				propertyOne: '42',
+				propertyTwo: '56',
+				ChildStruct: {
+					'0': '45',
+					'1': '78',
+					propertyOne: '45',
+					propertyTwo: '78',
+					__length__: 2,
+				},
+				__length__: 3,
 			},
 			__length__: 2,
+		},
+	},
+	{
+		input: [
+			[
+				{
+					components: [
+						{ internalType: 'string', name: 'name', type: 'string' },
+						{ internalType: 'address', name: 'addr', type: 'address' },
+						{
+							components: [
+								{ internalType: 'string', name: 'email', type: 'string' },
+								{ internalType: 'string', name: 'phone', type: 'string' },
+							],
+							internalType: 'struct ABIV2UserDirectory.Contact',
+							name: 'contact',
+							type: 'tuple',
+						},
+					],
+					indexed: false,
+					internalType: 'struct ABIV2UserDirectory.User',
+					name: 'user',
+					type: 'tuple',
+				},
+			],
+			'0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000060000000000000000000000000cb00cde33a7a0fba30c63745534f1f7ae607076b00000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000c5269636b2053616e6368657a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000157269636b2e63313337406369746164656c2e636663000000000000000000000000000000000000000000000000000000000000000000000000000000000000112b31202835353529203331342d31353933000000000000000000000000000000',
+		],
+		outputResult: {
+			'0': {
+				'0': 'Rick Sanchez',
+				'1': '0xCB00CDE33a7a0Fba30C63745534F1f7Ae607076b',
+				'2': {
+					'0': 'rick.c137@citadel.cfc',
+					'1': '+1 (555) 314-1593',
+					__length__: 2,
+					email: 'rick.c137@citadel.cfc',
+					phone: '+1 (555) 314-1593',
+				},
+				__length__: 3,
+				addr: '0xCB00CDE33a7a0Fba30C63745534F1f7Ae607076b',
+				contact: {
+					'0': 'rick.c137@citadel.cfc',
+					'1': '+1 (555) 314-1593',
+					__length__: 2,
+					email: 'rick.c137@citadel.cfc',
+					phone: '+1 (555) 314-1593',
+				},
+				name: 'Rick Sanchez',
+			},
+			__length__: 1,
+			user: {
+				'0': 'Rick Sanchez',
+				'1': '0xCB00CDE33a7a0Fba30C63745534F1f7Ae607076b',
+				'2': {
+					'0': 'rick.c137@citadel.cfc',
+					'1': '+1 (555) 314-1593',
+					__length__: 2,
+					email: 'rick.c137@citadel.cfc',
+					phone: '+1 (555) 314-1593',
+				},
+				__length__: 3,
+				addr: '0xCB00CDE33a7a0Fba30C63745534F1f7Ae607076b',
+				contact: {
+					'0': 'rick.c137@citadel.cfc',
+					'1': '+1 (555) 314-1593',
+					__length__: 2,
+					email: 'rick.c137@citadel.cfc',
+					phone: '+1 (555) 314-1593',
+				},
+				name: 'Rick Sanchez',
+			},
 		},
 	},
 ];

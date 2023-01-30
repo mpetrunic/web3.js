@@ -27,3 +27,6 @@ export * from './json_rpc';
 export * as jsonRpc from './json_rpc';
 export * from './web3_deferred_promise';
 export * from './chunk_response_parser';
+export * from './uuid';
+export * from './web3_eip1193_provider';
+export * from './socket_provider';

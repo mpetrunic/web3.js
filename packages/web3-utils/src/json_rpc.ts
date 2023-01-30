@@ -28,8 +28,14 @@ import {
 	JsonRpcBatchResponse,
 	JsonRpcSubscriptionResult,
 } from 'web3-types';
+import { rpcErrorsMap } from 'web3-errors';
+import { uuidV4 } from './uuid';
 
-let messageId = 0;
+// check if code is a valid rpc server error code
+export const isResponseRpcError = (rpcError: JsonRpcResponseWithError) => {
+	const errorCode = rpcError.error.code;
+	return rpcErrorsMap.has(errorCode) || (errorCode >= -32099 && errorCode <= -32000);
+};
 
 export const isResponseWithResult = <Result = unknown, Error = unknown>(
 	response: JsonRpcResponse<Result, Error>,
@@ -87,14 +93,30 @@ export const isBatchResponse = <Result = unknown, Error = unknown>(
 ): response is JsonRpcBatchResponse<Result, Error> =>
 	Array.isArray(response) && response.length > 1 && isValidResponse(response);
 
+// internal optional variable to increment and use for the jsonrpc `id`
+let requestIdSeed: number | undefined;
+
+/**
+ * Optionally use to make the jsonrpc `id` start from a specific number.
+ * Without calling this function, the `id` will be filled with a Uuid.
+ * But after this being called with a number, the `id` will be a number staring from the provided `start` variable.
+ * However, if `undefined` was passed to this function, the `id` will be a Uuid again.
+ * @param start - a number to start incrementing from.
+ * 	Or `undefined` to use a new Uuid (this is the default behavior)
+ */
+export const setRequestIdStart = (start: number | undefined) => {
+	requestIdSeed = start;
+};
+
 export const toPayload = <ParamType = unknown[]>(
 	request: JsonRpcOptionalRequest<ParamType>,
 ): JsonRpcPayload<ParamType> => {
-	messageId += 1;
-
+	if (typeof requestIdSeed !== 'undefined') {
+		requestIdSeed += 1;
+	}
 	return {
 		jsonrpc: request.jsonrpc ?? '2.0',
-		id: request.id ?? messageId,
+		id: request.id ?? requestIdSeed ?? uuidV4(),
 		method: request.method,
 		params: request.params ?? undefined,
 	};

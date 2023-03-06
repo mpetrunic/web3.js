@@ -112,7 +112,7 @@ export const hashMessage = (message: string): string => {
 };
 
 /**
- * Signs arbitrary data.
+ * Signs arbitrary data with a given private key.
  * **_NOTE:_** The value passed as the data parameter will be UTF-8 HEX decoded and wrapped as follows: "\\x19Ethereum Signed Message:\\n" + message.length + message
  *
  * @param data - The data to sign
@@ -265,9 +265,9 @@ export const signTransaction = async (
 
 	return {
 		messageHash: bytesToHex(Buffer.from(signedTx.getMessageToSign(true))),
-		v: `0x${signedTx.v.toString('hex')}`,
-		r: `0x${signedTx.r.toString('hex')}`,
-		s: `0x${signedTx.s.toString('hex')}`,
+		v: `0x${signedTx.v.toString(16)}`,
+		r: `0x${signedTx.r.toString(16)}`,
+		s: `0x${signedTx.s.toString(16)}`,
 		rawTransaction: rawTx,
 		transactionHash: bytesToHex(txHash),
 	};

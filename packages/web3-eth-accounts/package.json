@@ -22,7 +22,8 @@
 		"lint:fix": "eslint --fix --ext .js,.ts .",
 		"format": "prettier --write '**/*'",
 		"test": "jest --config=./test/unit/jest.config.js",
-		"test:coverage": "jest --config=./test/unit/jest.config.js --coverage=true --coverage-reporters=text",
+		"test:coverage:unit": "jest --config=./test/unit/jest.config.js --coverage=true --coverage-reporters=text",
+		"test:coverage:integration": "jest --config=./test/integration/jest.config.js --coverage=true --coverage-reporters=text",
 		"test:ci": "jest --coverage=true --coverage-reporters=json --verbose",
 		"test:watch": "npm test -- --watch",
 		"test:unit": "jest --config=./test/unit/jest.config.js",
@@ -44,7 +45,7 @@
 		"typescript": "^4.7.4"
 	},
 	"dependencies": {
-		"@ethereumjs/tx": "^3.5.2",
+		"@ethereumjs/tx": "^4.1.1",
 		"ethereum-cryptography": "^1.1.2",
 		"web3-errors": "^0.1.1-alpha.4",
 		"web3-types": "^0.1.1-alpha.4",

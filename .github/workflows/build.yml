@@ -83,6 +83,12 @@ jobs:
           path: /tmp
       - run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
       - run: yarn test:unit
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          flags: UnitTests
+          token: ${{ secrets.CODECOV_TOKEN }}
+        if: ${{ matrix.node == 16 }}
 
   integration:
     name: Integration
@@ -127,6 +133,25 @@ jobs:
       -   run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
       -   run: yarn test:e2e:${{ matrix.backend }}:${{ matrix.mode }}
           shell: bash
+
+  e2e-sync:
+      name: Integration Sync Test
+      needs: build
+      runs-on: ubuntu-latest
+      strategy:
+          fail-fast: false
+          matrix:
+              node: [ 16 ]
+              backend: [ 'geth' ]
+              mode: [ 'ws','ipc' ]
+      steps:
+          -   uses: actions/download-artifact@v3
+              with:
+                  name: web3-${{ matrix.node }}.js.tar.gz
+                  path: /tmp
+          -   run: tar -xf /tmp/web3-${{ matrix.node }}.js.tar.gz -C ./
+          -   run: yarn test:sync:e2e:${{ matrix.backend }}:${{ matrix.mode }}
+              shell: bash
 
   e2e:
     name: End-to-End ganache:ws

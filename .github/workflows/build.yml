@@ -2,12 +2,12 @@ name: 'Build'
 on:
   push:
     branches:
-      - '4.x'
+      - '4.x-test'
     tags:
       - v4*
   pull_request:
     branches:
-      - '4.x'
+      - '4.x-test'
     types: [opened, reopened, synchronize]
 
 jobs:
